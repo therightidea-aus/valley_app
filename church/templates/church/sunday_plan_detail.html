@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load church_extras %}
+
+{% block title %}Sunday Plan{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">Sunday Plan</p>
+  <h1 class="page-title">{{ plan.date|date:"l j F" }}</h1>
+  <p class="hero-copy">A consolidated view for the gathering and Sunday rosters.</p>
+{% endblock %}
+
+{% block content %}
+  <article class="card strong">
+    <div class="section-head">
+      <h2 class="section-title">Gathering plan</h2>
+      <button class="button secondary" type="button" onclick="window.print()">Print</button>
+    </div>
+    <div class="plan-grid">
+      <div class="mini"><span>Preaching</span><strong>{{ plan.preaching|names|default:"TBC" }}</strong></div>
+      <div class="mini"><span>Hosting</span><strong>{{ plan.hosting|names|default:"TBC" }}</strong></div>
+      <div class="mini"><span>Setup</span><strong>{{ plan.setup|names|default:"TBC" }}</strong></div>
+      {% for duty in duties %}
+        <div class="mini"><span>{{ duty.get_duty_type_display }}</span><strong>{{ duty.people|names|default:"TBC" }}</strong></div>
+      {% endfor %}
+    </div>
+    {% if plan.notes %}
+      <div class="item" style="margin-top:16px">
+        <h3>Notes</h3>
+        <p class="muted">{{ plan.notes }}</p>
+      </div>
+    {% endif %}
+  </article>
+{% endblock %}

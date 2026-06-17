@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load church_extras %}
+
+{% block title %}Assignment{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">{{ assignment.date|date:"l, j F" }}</p>
+  <h1 class="page-title">{{ assignment.ministry.name }}</h1>
+  <p class="hero-copy">{{ assignment.role_name }}{% if assignment.start_time %} · {{ assignment.start_time|time:"g:i A" }}{% endif %}</p>
+{% endblock %}
+
+{% block content %}
+  <article class="card strong">
+    <div class="plan-grid">
+      <div class="mini"><span>Role</span><strong>{{ assignment.role_name }}</strong></div>
+      <div class="mini"><span>People</span><strong>{{ assignment.people|names|default:"TBC" }}</strong></div>
+      <div class="mini"><span>Roster</span><strong>{{ assignment.roster.title }}</strong></div>
+      <div class="mini"><span>Age group</span><strong>{{ assignment.age_group|default:"Not applicable" }}</strong></div>
+    </div>
+    {% if assignment.notes %}
+      <p class="muted" style="margin-top:16px">{{ assignment.notes }}</p>
+    {% endif %}
+  </article>
+{% endblock %}

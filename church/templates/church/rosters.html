@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load church_extras %}
+
+{% block title %}Rosters{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">Rosters</p>
+  <h1 class="page-title">Who is serving when.</h1>
+  <p class="hero-copy">Look ahead across Sunday rosters and see who to speak with if you need to arrange a swap.</p>
+{% endblock %}
+
+{% block content %}
+  <div class="grid">
+    {% for group in roster_groups %}
+      <article class="card strong roster-month">
+        <div class="section-head">
+          <div>
+            <h2 class="schedule-month-title">{{ group.label }}</h2>
+            <p class="muted">
+              {% if group.date_groups %}
+                {{ group.date_groups|length }} Sunday{{ group.date_groups|length|pluralize }}
+              {% else %}
+                No Sunday duties rostered
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        <div class="roster-date-list">
+          {% for date_group in group.date_groups %}
+            <section class="roster-date">
+              <h3>{{ date_group.date|date:"l, j F" }}</h3>
+              <div class="roster-lines">
+                {% for duty in date_group.duties %}
+                  <a class="roster-line" href="{{ duty.get_absolute_url }}">
+                    <strong>{{ duty.get_duty_type_display }}:</strong>
+                    <span>{{ duty.people|names|default:"TBC" }}</span>
+                  </a>
+                {% endfor %}
+              </div>
+            </section>
+          {% empty %}
+            <div class="empty">Nothing rostered for this month.</div>
+          {% endfor %}
+        </div>
+      </article>
+    {% endfor %}
+
+    {% if can_load_more %}
+      <p style="margin:0">
+        <a class="button secondary" href="{% url 'rosters' %}?months={{ next_month_count }}">Load more rosters</a>
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}

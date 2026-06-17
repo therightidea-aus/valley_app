@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load church_extras %}
+
+{% block title %}Today at Church{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">{{ today|date:"l, j F" }}</p>
+  <h1 class="page-title">Good morning, {{ request.user.first_name|default:request.user.username }}</h1>
+  <p class="hero-copy">Your next responsibilities, this Sunday, church events, and the latest sermon in one place.</p>
+{% endblock %}
+
+{% block content %}
+  <div class="grid two">
+    <div class="grid">
+      <article class="card strong">
+        <div class="section-head">
+          <h2 class="section-title">My upcoming responsibilities</h2>
+          <a class="section-link" href="{% url 'my_schedule' %}">View all</a>
+        </div>
+        <div class="list">
+          {% for assignment in my_assignments %}
+            <a class="item" href="{{ assignment.get_absolute_url }}">
+              <div class="item-row">
+                <div>
+                  <h3>{{ assignment.get_duty_type_display }}</h3>
+                  <p class="muted">Sunday duty</p>
+                </div>
+                <span class="pill">{{ assignment.date|date:"D j M" }}</span>
+              </div>
+              <p class="muted">{{ assignment.date|date:"l j F" }}</p>
+            </a>
+          {% empty %}
+            <div class="empty">You do not have any upcoming responsibilities yet.</div>
+          {% endfor %}
+        </div>
+      </article>
+
+      <article class="card blue">
+        <div class="section-head">
+          <h2 class="section-title">This Sunday</h2>
+          {% if sunday_plan %}<a class="section-link" href="{{ sunday_plan.get_absolute_url }}">Full plan</a>{% endif %}
+        </div>
+        {% if sunday_plan %}
+          <div class="plan-grid">
+            <div class="mini"><span>Preaching</span><strong>{{ sunday_plan.preaching|names|default:"TBC" }}</strong></div>
+            <div class="mini"><span>Hosting</span><strong>{{ sunday_plan.hosting|names|default:"TBC" }}</strong></div>
+            <div class="mini"><span>Setup</span><strong>{{ sunday_plan.setup|names|default:"TBC" }}</strong></div>
+            {% for duty in sunday_duties %}
+              <div class="mini"><span>{{ duty.get_duty_type_display }}</span><strong>{{ duty.people|names|default:"TBC" }}</strong></div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty">No Sunday plan has been published yet.</div>
+        {% endif %}
+      </article>
+    </div>
+
+    <aside class="grid">
+      {% if notifications %}
+        <article class="card">
+          <div class="section-head">
+            <h2 class="section-title">Notifications</h2>
+          </div>
+          <div class="list">
+            {% for notification in notifications %}
+              <div class="item notification-item">
+                <div>
+                  <h3>{{ notification.title }}</h3>
+                  <p class="muted">{{ notification.body }}</p>
+                </div>
+                <form method="post" action="{% url 'dismiss_notification' notification.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button class="icon-button" type="submit" aria-label="Dismiss notification">×</button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        </article>
+      {% endif %}
+
+      <article class="card">
+        <div class="section-head">
+          <h2 class="section-title">Upcoming church events</h2>
+          <a class="section-link" href="{% url 'calendar' %}">Calendar</a>
+        </div>
+        <div class="list">
+          {% for event in events %}
+            <div class="item">
+              <div class="item-row">
+                <h3>{{ event.title }}</h3>
+                <span class="pill dark">{{ event.starts_at|date:"D j M" }}</span>
+              </div>
+              <p class="muted">{{ event.starts_at|time:"g:i A" }}{% if event.location %} · {{ event.location }}{% endif %}</p>
+            </div>
+          {% empty %}
+            <div class="empty">Calendar events will appear here once synced.</div>
+          {% endfor %}
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="section-head">
+          <h2 class="section-title">Latest sermon</h2>
+          {% if latest_sermon and latest_sermon.spotify_url %}<a class="section-link" href="{{ latest_sermon.spotify_url }}">Open</a>{% endif %}
+        </div>
+        {% if latest_sermon %}
+          <div class="item{% if latest_sermon.artwork_url %} sermon-item{% endif %}">
+            {% if latest_sermon.artwork_url %}
+              <img class="sermon-art" src="{{ latest_sermon.artwork_url }}" alt="">
+            {% endif %}
+            <div class="item-row">
+              <div>
+                <h3>{{ latest_sermon.title }}</h3>
+                <p class="muted">{{ latest_sermon.speaker|default:"Valley Community Church" }} · {{ latest_sermon.published_on|date:"j M Y" }}</p>
+              </div>
+              {% if latest_sermon.spotify_url %}
+                <a class="pill" href="{{ latest_sermon.spotify_url }}" target="_blank" rel="noopener">{% include "church/icons/play.html" %}</a>
+              {% else %}
+                <span class="pill">{% include "church/icons/play.html" %}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="empty">The latest sermon feed has not been configured yet.</div>
+        {% endif %}
+      </article>
+
+    </aside>
+  </div>
+{% endblock %}

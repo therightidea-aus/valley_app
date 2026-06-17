@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}More{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">More</p>
+  <h1 class="page-title">Settings, admin, and account.</h1>
+{% endblock %}
+
+{% block content %}
+  <div class="grid two">
+    <article class="card strong">
+      <div class="section-head">
+        <h2 class="section-title">Account</h2>
+      </div>
+      <div class="list">
+        <div class="item">
+          <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
+          <p class="muted">{{ request.user.email }}</p>
+        </div>
+        <div class="item">
+          <h3>Notifications</h3>
+          <p class="muted">{{ unread_count }} unread in-app notification{{ unread_count|pluralize }}</p>
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="button secondary" type="submit">Log out</button>
+        </form>
+      </div>
+    </article>
+
+    <article class="card blue">
+      <div class="section-head">
+        <h2 class="section-title">Administration</h2>
+      </div>
+      <p class="muted">Superadmins and ministry leaders can use Django admin for users, ministries, rosters, Sunday plans, calendar cache, sermons, and notifications.</p>
+      <p style="margin-top:16px"><a class="button" href="{% url 'admin:index' %}">Open admin</a></p>
+    </article>
+
+    <article class="card">
+      <div class="section-head">
+        <h2 class="section-title">Bible Study Material</h2>
+      </div>
+      <p class="muted">Open the current online Bible study material.</p>
+      <p style="margin-top:16px"><a class="button" href="https://online.valleychurch.com.au/" target="_blank" rel="noopener">Open material</a></p>
+    </article>
+
+    <article class="card">
+      <div class="section-head">
+        <h2 class="section-title">Bible Study Zoom Details</h2>
+      </div>
+      <div class="list">
+        <div class="item">
+          <h3>Meeting ID</h3>
+          <p class="muted">891 1754 6603</p>
+        </div>
+        <div class="item">
+          <h3>Passcode</h3>
+          <p class="muted">12345</p>
+        </div>
+      </div>
+      <p style="margin-top:16px"><a class="button" href="https://us06web.zoom.us/j/89117546603?pwd=dmNLYnl4cWtBcmErRXA0VmtubTFUUT09" target="_blank" rel="noopener">Open Zoom</a></p>
+    </article>
+
+    <article class="card">
+      <div class="section-head">
+        <h2 class="section-title">Giving Details</h2>
+      </div>
+      <p class="muted">View Valley Community Church bank details.</p>
+      <p style="margin-top:16px"><a class="button" href="https://online.valleychurch.com.au/bank-details/" target="_blank" rel="noopener">Open giving</a></p>
+    </article>
+
+    <article class="card">
+      <div class="section-head">
+        <h2 class="section-title">Worship Lyrics App</h2>
+      </div>
+      <p class="muted">Open the worship lyrics app.</p>
+      <p style="margin-top:16px"><a class="button" href="https://songs-therightidea.pythonanywhere.com/" target="_blank" rel="noopener">Open lyrics</a></p>
+    </article>
+  </div>
+{% endblock %}

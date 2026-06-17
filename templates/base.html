@@ -1,0 +1,60 @@
+{% load static church_extras %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16191b">
+  <title>{% block title %}Valley{% endblock %}</title>
+  <link rel="manifest" href="{% static 'church/manifest.webmanifest' %}">
+  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=8">
+  <script defer src="{% static 'church/app.js' %}?v=8"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="{% url 'dashboard' %}">
+        <img src="{% static 'church/img/vcc-logo-black.jpg' %}" alt="Valley Community Church">
+      </a>
+      <nav aria-label="Primary">
+        <a class="{% nav_class 'home' %}" href="{% url 'dashboard' %}">{% include "church/icons/home.html" %} Home</a>
+        <a class="{% nav_class 'schedule' %}" href="{% url 'my_schedule' %}">{% include "church/icons/calendar_check.html" %} My Schedule</a>
+        <a class="{% nav_class 'rosters' %}" href="{% url 'rosters' %}">{% include "church/icons/users.html" %} Rosters</a>
+        <a class="{% nav_class 'calendar' %}" href="{% url 'calendar' %}">{% include "church/icons/calendar.html" %} Calendar</a>
+        <a class="{% nav_class 'more' %}" href="{% url 'more' %}">{% include "church/icons/menu.html" %} More</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <section class="hero">
+        <div class="hero-inner">
+          <div class="mobile-topbar">
+            <img src="{% static 'church/img/vcc-logo-black.jpg' %}" alt="Valley Community Church">
+            <div class="avatar">{{ request.user.first_name|default:request.user.username|slice:":1" }}{{ request.user.last_name|slice:":1" }}</div>
+          </div>
+          {% block hero %}{% endblock %}
+        </div>
+      </section>
+
+      <section class="content">
+        {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+              <div class="message">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </section>
+    </main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Primary">
+    <a class="{% nav_class 'home' %}" href="{% url 'dashboard' %}">{% include "church/icons/home.html" %}<span>Home</span></a>
+    <a class="{% nav_class 'schedule' %}" href="{% url 'my_schedule' %}">{% include "church/icons/calendar_check.html" %}<span>Schedule</span></a>
+    <a class="{% nav_class 'rosters' %}" href="{% url 'rosters' %}">{% include "church/icons/users.html" %}<span>Rosters</span></a>
+    <a class="{% nav_class 'calendar' %}" href="{% url 'calendar' %}">{% include "church/icons/calendar.html" %}<span>Calendar</span></a>
+    <a class="{% nav_class 'more' %}" href="{% url 'more' %}">{% include "church/icons/menu.html" %}<span>More</span></a>
+  </nav>
+</body>
+</html>

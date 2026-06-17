@@ -1,0 +1,36 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16191b">
+  <title>Log in · Valley</title>
+  <link rel="manifest" href="{% static 'church/manifest.webmanifest' %}">
+  <link rel="stylesheet" href="{% static 'church/app.css' %}">
+</head>
+<body>
+  <main class="login-page">
+    <form class="login-card" method="post">
+      {% csrf_token %}
+      <img class="login-logo" src="{% static 'church/img/vcc-logo-black.jpg' %}" alt="Valley Community Church">
+      <h1 class="section-title" style="font-size:28px;margin-bottom:8px">Welcome back</h1>
+      <p class="muted" style="margin-bottom:22px">Sign in to see what is coming up at church.</p>
+
+      {% if form.errors %}
+        <div class="message">Please check your email and password.</div>
+      {% endif %}
+
+      <div class="field">
+        <label for="{{ form.username.id_for_label }}">Email</label>
+        {{ form.username }}
+      </div>
+      <div class="field">
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+      </div>
+      <button class="button" type="submit" style="width:100%">Log in</button>
+    </form>
+  </main>
+</body>
+</html>

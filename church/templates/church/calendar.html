@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">Calendar</p>
+  <h1 class="page-title">The next two weeks at Valley.</h1>
+  <p class="hero-copy">A simple read-only list from the church Google Calendar.</p>
+{% endblock %}
+
+{% block content %}
+  <article class="card strong">
+    <div class="section-head">
+      <div>
+        <h2 class="schedule-month-title">Upcoming events</h2>
+        <p class="muted">Showing {{ today|date:"j M" }} to {{ end_date|date:"j M Y" }}</p>
+      </div>
+      {% if calendar_feed and calendar_feed.last_synced_at %}
+        <span class="pill dark">Synced {{ calendar_feed.last_synced_at|date:"j M, g:i A" }}</span>
+      {% endif %}
+    </div>
+
+    {% if sync_error %}
+      <div class="message">{{ sync_error }}</div>
+    {% endif %}
+
+    <div class="list">
+      {% for event in events %}
+        <div class="item">
+          <div class="item-row">
+            <div>
+              <h3>{{ event.title }}</h3>
+              <p class="muted">
+                {{ event.starts_at|date:"l j F" }}
+                {% if event.starts_at|time:"H:i" != "00:00" %} · {{ event.starts_at|time:"g:i A" }}{% endif %}
+                {% if event.location %} · {{ event.location }}{% endif %}
+              </p>
+            </div>
+            <span class="pill">{{ event.starts_at|date:"D" }}</span>
+          </div>
+          {% if event.description %}
+            <p class="muted">{{ event.description|urlize|linebreaksbr }}</p>
+          {% endif %}
+        </div>
+      {% empty %}
+        <div class="empty">
+          {% if sync_error %}
+            No events could be loaded because the calendar sync is unavailable.
+          {% elif calendar_feed and calendar_feed.last_synced_at %}
+            The Google Calendar synced successfully, but there are no upcoming events in the current feed.
+          {% else %}
+            No events are listed for this period.
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if can_load_more %}
+      <p style="margin:18px 0 0">
+        <a class="button secondary" href="{% url 'calendar' %}?days={{ next_days }}">Load more events</a>
+      </p>
+    {% endif %}
+  </article>
+{% endblock %}

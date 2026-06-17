@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}My Schedule{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">My Schedule</p>
+  <h1 class="page-title">Everything you are rostered for next.</h1>
+  <p class="hero-copy">Your Sunday duties, grouped by month and shown in date order.</p>
+{% endblock %}
+
+{% block content %}
+  <div class="grid">
+    {% for group in schedule_groups %}
+      <article class="card strong">
+        <div class="section-head">
+          <div>
+            <h2 class="schedule-month-title">{{ group.label }}</h2>
+            <p class="muted">
+              {% if group.duties %}
+                {{ group.duties|length }} dut{{ group.duties|length|pluralize:"y,ies" }}
+              {% else %}
+                No duties rostered
+              {% endif %}
+            </p>
+          </div>
+        </div>
+        <div class="list">
+          {% for assignment in group.duties %}
+            <a class="item" href="{{ assignment.get_absolute_url }}">
+              <div class="item-row">
+                <div>
+                  <h3>{{ assignment.get_duty_type_display }}</h3>
+                  <p class="muted">Sunday duty</p>
+                </div>
+                <span class="pill">{{ assignment.date|date:"D j M" }}</span>
+              </div>
+              <p class="muted">{{ assignment.date|date:"l j F" }}</p>
+            </a>
+          {% empty %}
+            <div class="empty">Nothing rostered for this month.</div>
+          {% endfor %}
+        </div>
+      </article>
+    {% endfor %}
+
+    {% if can_load_more %}
+      <p style="margin:0">
+        <a class="button secondary" href="{% url 'my_schedule' %}?months={{ next_month_count }}">Load more duties</a>
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}

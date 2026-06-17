@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load church_extras %}
+
+{% block title %}Sunday Duty{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">{{ duty.date|date:"l, j F" }}</p>
+  <h1 class="page-title">{{ duty.get_duty_type_display }}</h1>
+  <p class="hero-copy">Sunday roster assignment.</p>
+{% endblock %}
+
+{% block content %}
+  <article class="card strong">
+    <div class="plan-grid">
+      <div class="mini"><span>Date</span><strong>{{ duty.date|date:"l j F Y" }}</strong></div>
+      <div class="mini"><span>Duty</span><strong>{{ duty.get_duty_type_display }}</strong></div>
+      <div class="mini"><span>Assigned</span><strong>{{ duty.people|names|default:"TBC" }}</strong></div>
+    </div>
+    {% if duty.notes %}
+      <div class="item" style="margin-top:16px">
+        <h3>Notes</h3>
+        <p class="muted">{{ duty.notes }}</p>
+      </div>
+    {% endif %}
+  </article>
+{% endblock %}

@@ -1,0 +1,17 @@
+{
+  "name": "Valley Community Church",
+  "short_name": "Valley",
+  "description": "A mobile-first home for church responsibilities, rosters, events, and sermons.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f3f3",
+  "theme_color": "#16191b",
+  "icons": [
+    {
+      "src": "/static/church/img/vcc-logo-black.jpg",
+      "sizes": "512x144",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
