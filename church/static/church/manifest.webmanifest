@@ -8,10 +8,16 @@
   "theme_color": "#16191b",
   "icons": [
     {
-      "src": "/static/church/img/vcc-logo-black.jpg",
-      "sizes": "512x144",
-      "type": "image/jpeg",
+      "src": "/static/church/img/valley-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/static/church/img/valley-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

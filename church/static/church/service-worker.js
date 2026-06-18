@@ -1,9 +1,11 @@
-const CACHE_NAME = "valley-v8";
+const CACHE_NAME = "valley-v9";
 const CORE_ASSETS = [
   "/",
   "/static/church/app.css",
   "/static/church/app.js",
   "/static/church/img/vcc-logo-black.jpg",
+  "/static/church/img/valley-icon-192.png",
+  "/static/church/img/valley-icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
