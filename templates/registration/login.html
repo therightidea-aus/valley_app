@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#16191b">
   <title>Log in · Valley</title>
   <link rel="manifest" href="{% static 'church/manifest.webmanifest' %}">
-  <link rel="stylesheet" href="{% static 'church/app.css' %}">
+  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=11">
 </head>
 <body>
   <main class="login-page">
@@ -30,6 +30,7 @@
         {{ form.password }}
       </div>
       <button class="button" type="submit" style="width:100%">Log in</button>
+      <p class="muted auth-link"><a href="{% url 'register' %}">Request access</a></p>
     </form>
   </main>
 </body>

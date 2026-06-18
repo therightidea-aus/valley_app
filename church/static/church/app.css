@@ -274,6 +274,11 @@ input {
   align-items: start;
 }
 
+.notification-copy {
+  display: grid;
+  gap: 8px;
+}
+
 .icon-button {
   width: 32px;
   height: 32px;
@@ -396,6 +401,39 @@ input {
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.button-row,
+.approval-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.approval-row {
+  justify-content: space-between;
+}
+
+.button-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.auth-link {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.auth-link a {
+  color: var(--red);
+  font-weight: 800;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .empty {
@@ -555,6 +593,17 @@ input {
 
   .bottom-nav {
     display: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .approval-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .button-row {
+    justify-content: flex-start;
   }
 }
 

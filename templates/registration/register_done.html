@@ -1,0 +1,22 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16191b">
+  <title>Request received · Valley</title>
+  <link rel="manifest" href="{% static 'church/manifest.webmanifest' %}">
+  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=11">
+</head>
+<body>
+  <main class="login-page">
+    <div class="login-card">
+      <img class="login-logo" src="{% static 'church/img/vcc-logo-black.jpg' %}" alt="Valley Community Church">
+      <h1 class="section-title" style="font-size:28px;margin-bottom:8px">Request received</h1>
+      <p class="muted" style="margin-bottom:22px">Thanks. A Valley superadmin will review your account before you can sign in.</p>
+      <a class="button" href="{% url 'login' %}" style="width:100%">Back to login</a>
+    </div>
+  </main>
+</body>
+</html>

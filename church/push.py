@@ -27,7 +27,7 @@ def send_notification_push(notification):
         {
             "title": notification.title,
             "body": notification.body,
-            "url": reverse("dashboard"),
+            "url": notification.target_url or reverse("dashboard"),
             "icon": "/static/church/img/valley-icon-192.png",
             "badge": "/static/church/img/valley-icon-192.png",
         }

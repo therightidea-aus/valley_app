@@ -1,4 +1,4 @@
-const CACHE_NAME = "valley-v10";
+const CACHE_NAME = "valley-v11";
 const CORE_ASSETS = [
   "/",
   "/static/church/app.css",

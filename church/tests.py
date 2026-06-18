@@ -308,6 +308,87 @@ class NotificationTests(TestCase):
         self.assertFalse(subscription.enabled)
 
 
+class RegistrationApprovalTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.superadmin = User.objects.create_superuser(
+            username="admin@example.com",
+            email="admin@example.com",
+            password="valley-demo",
+            first_name="Admin",
+        )
+
+    @patch("church.signals.send_notification_push")
+    def test_public_registration_creates_inactive_user_and_notifies_superadmin(self, push_mock):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "first_name": "New",
+                "last_name": "Person",
+                "email": "new@example.com",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            },
+        )
+
+        self.assertRedirects(response, reverse("register_done"))
+        User = get_user_model()
+        user = User.objects.get(email="new@example.com")
+        self.assertFalse(user.is_active)
+        notification = Notification.objects.get(user=self.superadmin, title="New user registration")
+        self.assertEqual(notification.target_url, reverse("more"))
+        push_mock.assert_called_once_with(notification)
+
+    def test_superadmin_can_approve_pending_user_from_more(self):
+        User = get_user_model()
+        pending_user = User.objects.create_user(
+            username="new@example.com",
+            email="new@example.com",
+            password="StrongPass123!",
+            is_active=False,
+        )
+
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.post(reverse("approve_pending_user", kwargs={"pk": pending_user.pk}))
+
+        pending_user.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(pending_user.is_active)
+
+    def test_superadmin_can_dismiss_pending_user_from_more(self):
+        User = get_user_model()
+        pending_user = User.objects.create_user(
+            username="new@example.com",
+            email="new@example.com",
+            password="StrongPass123!",
+            is_active=False,
+        )
+
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.post(reverse("dismiss_pending_user", kwargs={"pk": pending_user.pk}))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(pk=pending_user.pk).exists())
+
+    def test_superadmin_sees_pending_users_on_more_tab(self):
+        User = get_user_model()
+        User.objects.create_user(
+            username="new@example.com",
+            email="new@example.com",
+            password="StrongPass123!",
+            first_name="New",
+            last_name="Person",
+            is_active=False,
+        )
+
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.get(reverse("more"))
+
+        self.assertContains(response, "New user requests")
+        self.assertContains(response, "New Person")
+        self.assertContains(response, "Approve")
+
+
 class RostersPageTests(TestCase):
     def setUp(self):
         User = get_user_model()

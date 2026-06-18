@@ -64,10 +64,17 @@
           <div class="list">
             {% for notification in notifications %}
               <div class="item notification-item">
-                <div>
-                  <h3>{{ notification.title }}</h3>
-                  <p class="muted">{{ notification.body }}</p>
-                </div>
+                {% if notification.target_url %}
+                  <a class="notification-copy" href="{{ notification.target_url }}">
+                    <h3>{{ notification.title }}</h3>
+                    <p class="muted">{{ notification.body }}</p>
+                  </a>
+                {% else %}
+                  <div class="notification-copy">
+                    <h3>{{ notification.title }}</h3>
+                    <p class="muted">{{ notification.body }}</p>
+                  </div>
+                {% endif %}
                 <form method="post" action="{% url 'dismiss_notification' notification.pk %}">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ request.get_full_path }}">

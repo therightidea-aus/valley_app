@@ -214,6 +214,7 @@ class Notification(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
     title = models.CharField(max_length=160)
     body = models.TextField()
+    target_url = models.CharField(max_length=255, blank=True)
     due_at = models.DateTimeField(null=True, blank=True)
     read_at = models.DateTimeField(null=True, blank=True)
 

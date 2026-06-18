@@ -3,14 +3,18 @@ from datetime import date, timedelta
 from calendar import monthrange
 
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponseBadRequest, JsonResponse
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
+from .forms import PublicRegistrationForm
 from .models import Assignment, CalendarEventCache, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
 
@@ -33,6 +37,43 @@ def _month_start(value):
 
 def _month_end(value):
     return value.replace(day=monthrange(value.year, value.month)[1])
+
+
+def _is_superadmin(user):
+    return user.is_authenticated and (user.is_superuser or getattr(getattr(user, "profile", None), "role", "") == "superadmin")
+
+
+def _superadmin_users():
+    User = get_user_model()
+    return User.objects.filter(Q(is_superuser=True) | Q(profile__role="superadmin"), is_active=True).distinct()
+
+
+def _notify_superadmins_about_registration(user):
+    target_url = reverse("more")
+    body = f"{user.get_full_name() or user.email} has requested access."
+    for superadmin in _superadmin_users():
+        Notification.objects.create(
+            user=superadmin,
+            title="New user registration",
+            body=body,
+            target_url=target_url,
+        )
+
+
+def register(request):
+    if request.method == "POST":
+        form = PublicRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            _notify_superadmins_about_registration(user)
+            return redirect("register_done")
+    else:
+        form = PublicRegistrationForm()
+    return render(request, "registration/register.html", {"form": form})
+
+
+def register_done(request):
+    return render(request, "registration/register_done.html")
 
 
 @login_required
@@ -219,6 +260,10 @@ def calendar(request):
 def more(request):
     unread_count = Notification.objects.filter(user=request.user, read_at__isnull=True).count()
     has_push_subscription = PushSubscription.objects.filter(user=request.user, enabled=True).exists()
+    pending_users = []
+    if _is_superadmin(request.user):
+        User = get_user_model()
+        pending_users = User.objects.filter(is_active=False).order_by("date_joined", "last_name", "first_name")
     return render(
         request,
         "church/more.html",
@@ -227,6 +272,8 @@ def more(request):
             "active_nav": "more",
             "push_public_key": settings.VAPID_PUBLIC_KEY,
             "has_push_subscription": has_push_subscription,
+            "pending_users": pending_users,
+            "can_review_users": _is_superadmin(request.user),
         },
     )
 
@@ -314,6 +361,32 @@ def remove_push_subscription(request):
         preference.future_push_enabled = False
         preference.save(update_fields=["future_push_enabled", "updated_at"])
     return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def approve_pending_user(request, pk):
+    if not _is_superadmin(request.user):
+        return redirect("more")
+    User = get_user_model()
+    pending_user = get_object_or_404(User, pk=pk, is_active=False)
+    pending_user.is_active = True
+    pending_user.save(update_fields=["is_active"])
+    messages.success(request, f"{pending_user.get_full_name() or pending_user.email} has been approved.")
+    return redirect("more")
+
+
+@login_required
+@require_POST
+def dismiss_pending_user(request, pk):
+    if not _is_superadmin(request.user):
+        return redirect("more")
+    User = get_user_model()
+    pending_user = get_object_or_404(User, pk=pk, is_active=False)
+    name = pending_user.get_full_name() or pending_user.email
+    pending_user.delete()
+    messages.success(request, f"{name} has been dismissed.")
+    return redirect("more")
 
 
 def service_worker(request):

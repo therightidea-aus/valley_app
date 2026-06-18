@@ -1,0 +1,37 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16191b">
+  <title>Register · Valley</title>
+  <link rel="manifest" href="{% static 'church/manifest.webmanifest' %}">
+  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=11">
+</head>
+<body>
+  <main class="login-page">
+    <form class="login-card" method="post">
+      {% csrf_token %}
+      <img class="login-logo" src="{% static 'church/img/vcc-logo-black.jpg' %}" alt="Valley Community Church">
+      <h1 class="section-title" style="font-size:28px;margin-bottom:8px">Request access</h1>
+      <p class="muted" style="margin-bottom:22px">Create an account for the Valley app. A superadmin will approve access before you can sign in.</p>
+
+      {% if form.non_field_errors %}
+        <div class="message">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}
+        </div>
+      {% endfor %}
+
+      <button class="button" type="submit" style="width:100%">Request access</button>
+      <p class="muted auth-link"><a href="{% url 'login' %}">Already have an account?</a></p>
+    </form>
+  </main>
+</body>
+</html>
