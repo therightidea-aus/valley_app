@@ -3,6 +3,7 @@ from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -354,6 +355,27 @@ class RegistrationApprovalTests(TestCase):
         pending_user.refresh_from_db()
         self.assertEqual(response.status_code, 302)
         self.assertTrue(pending_user.is_active)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["new@example.com"])
+        self.assertIn("account has been approved", mail.outbox[0].body)
+
+    @patch("church.views.send_account_approved_email", return_value=False)
+    def test_approval_still_activates_user_if_email_fails(self, email_mock):
+        User = get_user_model()
+        pending_user = User.objects.create_user(
+            username="new@example.com",
+            email="new@example.com",
+            password="StrongPass123!",
+            is_active=False,
+        )
+
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.post(reverse("approve_pending_user", kwargs={"pk": pending_user.pk}))
+
+        pending_user.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(pending_user.is_active)
+        email_mock.assert_called_once()
 
     def test_superadmin_can_dismiss_pending_user_from_more(self):
         User = get_user_model()

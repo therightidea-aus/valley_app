@@ -143,6 +143,31 @@ Copy the printed `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY_PATH` values into `.e
 
 Users can then enable push notifications from the More tab. When a user is added to a Sunday roster, the app creates the normal in-app notification and also attempts to send a push notification to that user's enabled browser/device subscriptions.
 
+## Email
+
+Account approval emails use Django's SMTP email settings from `.env`.
+
+For Google Workspace SMTP with an app password:
+
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+EMAIL_HOST_USER=your-google-workspace-address@valleychurch.com.au
+EMAIL_HOST_PASSWORD=your-google-app-password-or-smtp-password
+DEFAULT_FROM_EMAIL=Valley Community Church <your-google-workspace-address@valleychurch.com.au>
+```
+
+Test email from PythonAnywhere:
+
+```bash
+cd /home/therightidea/valley_app
+source .venv/bin/activate
+python manage.py shell -c "from django.core.mail import send_mail; send_mail('Valley test email', 'Email is working.', None, ['your-address@example.com'])"
+```
+
 ## Notes
 
 Google Calendar and Spotify sermon syncing use public feed/scrape endpoints and cache results in the database.

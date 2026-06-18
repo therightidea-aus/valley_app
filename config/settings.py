@@ -20,6 +20,14 @@ env = environ.Env(
     VAPID_PRIVATE_KEY=(str, ""),
     VAPID_PRIVATE_KEY_PATH=(str, ""),
     VAPID_SUBJECT=(str, "mailto:admin@valleychurch.com.au"),
+    EMAIL_BACKEND=(str, "django.core.mail.backends.console.EmailBackend"),
+    EMAIL_HOST=(str, ""),
+    EMAIL_PORT=(int, 587),
+    EMAIL_USE_TLS=(bool, True),
+    EMAIL_USE_SSL=(bool, False),
+    EMAIL_HOST_USER=(str, ""),
+    EMAIL_HOST_PASSWORD=(str, ""),
+    DEFAULT_FROM_EMAIL=(str, "Valley Community Church <no-reply@valleychurch.com.au>"),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
@@ -111,3 +119,11 @@ VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY")
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY")
 VAPID_PRIVATE_KEY_PATH = env("VAPID_PRIVATE_KEY_PATH")
 VAPID_SUBJECT = env("VAPID_SUBJECT")
+EMAIL_BACKEND = env("EMAIL_BACKEND")
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = env("EMAIL_PORT")
+EMAIL_USE_TLS = env("EMAIL_USE_TLS")
+EMAIL_USE_SSL = env("EMAIL_USE_SSL")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")

@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
+from .email import send_account_approved_email
 from .forms import PublicRegistrationForm
 from .models import Assignment, CalendarEventCache, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
@@ -372,7 +373,11 @@ def approve_pending_user(request, pk):
     pending_user = get_object_or_404(User, pk=pk, is_active=False)
     pending_user.is_active = True
     pending_user.save(update_fields=["is_active"])
-    messages.success(request, f"{pending_user.get_full_name() or pending_user.email} has been approved.")
+    name = pending_user.get_full_name() or pending_user.email
+    if send_account_approved_email(pending_user, request):
+        messages.success(request, f"{name} has been approved and emailed.")
+    else:
+        messages.warning(request, f"{name} has been approved, but the email could not be sent.")
     return redirect("more")
 
 
