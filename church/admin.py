@@ -8,6 +8,7 @@ from .models import (
     Notification,
     NotificationPreference,
     Profile,
+    PushSubscription,
     SermonSource,
     CateringDuty,
     KidsMinistryDuty,
@@ -153,6 +154,18 @@ class NotificationPreferenceAdmin(admin.ModelAdmin):
     list_filter = ("in_app_enabled", "friday_reminder_enabled", "future_push_enabled")
 
 
+@admin.register(PushSubscription)
+class PushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("user", "enabled", "updated_at", "short_endpoint")
+    list_filter = ("enabled", "updated_at")
+    search_fields = ("user__email", "user__first_name", "user__last_name", "endpoint")
+    readonly_fields = ("user", "endpoint", "p256dh", "auth", "user_agent", "enabled", "created_at", "updated_at")
+
+    @admin.display(description="Endpoint")
+    def short_endpoint(self, obj):
+        return f"{obj.endpoint[:64]}..." if len(obj.endpoint) > 64 else obj.endpoint
+
+
 ADMIN_MENU_GROUPS = [
     (
         "Rosters",
@@ -171,6 +184,7 @@ ADMIN_MENU_GROUPS = [
             "SermonSource",
             "Notification",
             "NotificationPreference",
+            "PushSubscription",
         },
     ),
     (

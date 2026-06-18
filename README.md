@@ -127,6 +127,22 @@ python manage.py sync_calendar
 python manage.py sync_sermons
 ```
 
+## Push Notifications
+
+Push notifications require HTTPS, browser permission from each user, and VAPID keys configured in `.env`.
+
+Generate keys on PythonAnywhere:
+
+```bash
+cd /home/therightidea/valley_app
+source .venv/bin/activate
+python manage.py generate_vapid_keys --private-key-path /home/therightidea/valley_app/.vapid_private_key.pem
+```
+
+Copy the printed `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY_PATH` values into `.env`, then reload the web app.
+
+Users can then enable push notifications from the More tab. When a user is added to a Sunday roster, the app creates the normal in-app notification and also attempts to send a push notification to that user's enabled browser/device subscriptions.
+
 ## Notes
 
 Google Calendar and Spotify sermon syncing use public feed/scrape endpoints and cache results in the database.

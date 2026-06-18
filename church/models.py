@@ -236,3 +236,28 @@ class NotificationPreference(TimeStampedModel):
 
     def __str__(self):
         return f"Notification preferences for {self.user}"
+
+
+class PushSubscription(TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="push_subscriptions")
+    endpoint = models.URLField(unique=True, max_length=1000)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=255, blank=True)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["user", "-updated_at"]
+
+    def __str__(self):
+        return f"Push subscription for {self.user}"
+
+    @property
+    def subscription_info(self):
+        return {
+            "endpoint": self.endpoint,
+            "keys": {
+                "p256dh": self.p256dh,
+                "auth": self.auth,
+            },
+        }

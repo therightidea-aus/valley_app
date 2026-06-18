@@ -12,5 +12,7 @@ urlpatterns = [
     path("assignment/<int:pk>/", views.assignment_detail, name="assignment_detail"),
     path("sunday-duty/<int:pk>/", views.sunday_duty_detail, name="sunday_duty_detail"),
     path("notifications/<int:pk>/dismiss/", views.dismiss_notification, name="dismiss_notification"),
+    path("push/subscribe/", views.save_push_subscription, name="save_push_subscription"),
+    path("push/unsubscribe/", views.remove_push_subscription, name="remove_push_subscription"),
     path("service-worker.js", views.service_worker, name="service_worker"),
 ]

@@ -387,6 +387,17 @@ input {
   background: var(--charcoal);
 }
 
+.button.compact {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .empty {
   padding: 18px;
   border: 1px dashed rgba(22, 25, 27, 0.22);

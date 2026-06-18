@@ -20,5 +20,6 @@ media/
 staticfiles/
 
 *.log
+.vapid_private_key.pem
 
 .codex_tmp/

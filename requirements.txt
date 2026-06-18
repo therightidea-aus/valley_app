@@ -3,3 +3,4 @@ psycopg[binary]>=3.2,<3.3
 django-environ>=0.11,<0.12
 whitenoise>=6.7,<6.8
 gunicorn>=22,<23
+pywebpush>=2.0,<3.0

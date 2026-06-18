@@ -5,6 +5,7 @@ from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 
 from .models import CateringDuty, KidsMinistryDuty, Notification, NotificationPreference, Profile, SundayDuty, SundayPlan, WorshipBandDuty
+from .push import send_notification_push
 
 
 MINISTRY_LEADER_GROUP = "Ministry Leaders"
@@ -81,3 +82,9 @@ def notify_people_added_to_sunday_duty(sender, instance, action, pk_set, **kwarg
             title=title,
             body=body,
         )
+
+
+@receiver(post_save, sender=Notification)
+def send_push_for_new_notification(sender, instance, created, **kwargs):
+    if created:
+        send_notification_push(instance)

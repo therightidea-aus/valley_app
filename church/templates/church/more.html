@@ -22,6 +22,32 @@
           <h3>Notifications</h3>
           <p class="muted">{{ unread_count }} unread in-app notification{{ unread_count|pluralize }}</p>
         </div>
+        <div class="item">
+          <div class="item-row">
+            <div>
+              <h3>Push notifications</h3>
+              <p class="muted" data-push-status>
+                {% if push_public_key %}
+                  {% if has_push_subscription %}Enabled on this device{% else %}Get notified when you are added to a roster{% endif %}
+                {% else %}
+                  Setup pending
+                {% endif %}
+              </p>
+            </div>
+            <button
+              class="button compact"
+              type="button"
+              data-push-toggle
+              data-vapid-public-key="{{ push_public_key }}"
+              data-subscribe-url="{% url 'save_push_subscription' %}"
+              data-unsubscribe-url="{% url 'remove_push_subscription' %}"
+              data-csrf-token="{{ csrf_token }}"
+              {% if not push_public_key %}disabled{% endif %}
+            >
+              {% if has_push_subscription %}Disable{% else %}Enable{% endif %}
+            </button>
+          </div>
+        </div>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button class="button secondary" type="submit">Log out</button>

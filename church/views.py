@@ -1,16 +1,17 @@
+import json
 from datetime import date, timedelta
 from calendar import monthrange
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseBadRequest, JsonResponse
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
-from .models import Assignment, CalendarEventCache, Notification, SermonSource, SundayDuty, SundayPlan
+from .models import Assignment, CalendarEventCache, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
 
 
@@ -217,7 +218,17 @@ def calendar(request):
 @login_required
 def more(request):
     unread_count = Notification.objects.filter(user=request.user, read_at__isnull=True).count()
-    return render(request, "church/more.html", {"unread_count": unread_count, "active_nav": "more"})
+    has_push_subscription = PushSubscription.objects.filter(user=request.user, enabled=True).exists()
+    return render(
+        request,
+        "church/more.html",
+        {
+            "unread_count": unread_count,
+            "active_nav": "more",
+            "push_public_key": settings.VAPID_PUBLIC_KEY,
+            "has_push_subscription": has_push_subscription,
+        },
+    )
 
 
 @login_required
@@ -249,6 +260,60 @@ def dismiss_notification(request, pk):
     notification.read_at = timezone.now()
     notification.save(update_fields=["read_at", "updated_at"])
     return redirect(request.POST.get("next") or "dashboard")
+
+
+@login_required
+@require_POST
+def save_push_subscription(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return HttpResponseBadRequest("Invalid subscription payload.")
+
+    endpoint = payload.get("endpoint")
+    keys = payload.get("keys") or {}
+    p256dh = keys.get("p256dh")
+    auth = keys.get("auth")
+    if not endpoint or not p256dh or not auth:
+        return HttpResponseBadRequest("Subscription endpoint and keys are required.")
+
+    PushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={
+            "user": request.user,
+            "p256dh": p256dh,
+            "auth": auth,
+            "user_agent": request.META.get("HTTP_USER_AGENT", "")[:255],
+            "enabled": True,
+        },
+    )
+    preference, _ = NotificationPreference.objects.get_or_create(user=request.user)
+    preference.future_push_enabled = True
+    preference.save(update_fields=["future_push_enabled", "updated_at"])
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def remove_push_subscription(request):
+    endpoint = ""
+    if request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+            endpoint = payload.get("endpoint", "")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return HttpResponseBadRequest("Invalid subscription payload.")
+
+    queryset = PushSubscription.objects.filter(user=request.user, enabled=True)
+    if endpoint:
+        queryset = queryset.filter(endpoint=endpoint)
+    queryset.update(enabled=False)
+
+    if not PushSubscription.objects.filter(user=request.user, enabled=True).exists():
+        preference, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        preference.future_push_enabled = False
+        preference.save(update_fields=["future_push_enabled", "updated_at"])
+    return JsonResponse({"ok": True})
 
 
 def service_worker(request):

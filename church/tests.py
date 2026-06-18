@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
@@ -7,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .calendar_sync import parse_ical_events
-from .models import Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, Roster, SundayDuty
+from .models import Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, SundayDuty
 from .spotify_sync import parse_latest_episode
 
 
@@ -196,7 +197,8 @@ class MyScheduleTests(TestCase):
 
 
 class NotificationTests(TestCase):
-    def test_user_gets_notification_when_added_to_sunday_duty(self):
+    @patch("church.signals.send_notification_push")
+    def test_user_gets_notification_when_added_to_sunday_duty(self, push_mock):
         User = get_user_model()
         user = User.objects.create_user(
             username="roger@example.com",
@@ -210,6 +212,7 @@ class NotificationTests(TestCase):
         notification = Notification.objects.get(user=user)
         self.assertEqual(notification.title, "You've been rostered for Catering")
         self.assertEqual(notification.body, "Sunday 21 June")
+        push_mock.assert_called_once_with(notification)
 
     @patch("church.views.sync_spotify_sermon_if_due")
     def test_notifications_render_first_in_dashboard_right_column(self, sync_mock):
@@ -256,6 +259,53 @@ class NotificationTests(TestCase):
         notification.refresh_from_db()
         self.assertEqual(response.status_code, 404)
         self.assertIsNone(notification.read_at)
+
+    def test_user_can_save_push_subscription(self):
+        User = get_user_model()
+        user = User.objects.create_user(username="roger@example.com", email="roger@example.com", password="valley-demo")
+        self.client.login(username="roger@example.com", password="valley-demo")
+
+        response = self.client.post(
+            reverse("save_push_subscription"),
+            data=json.dumps(
+                {
+                    "endpoint": "https://push.example.com/device-1",
+                    "keys": {
+                        "p256dh": "public-key",
+                        "auth": "auth-secret",
+                    },
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        subscription = PushSubscription.objects.get(user=user)
+        self.assertEqual(subscription.endpoint, "https://push.example.com/device-1")
+        self.assertTrue(subscription.enabled)
+        user.notification_preference.refresh_from_db()
+        self.assertTrue(user.notification_preference.future_push_enabled)
+
+    def test_user_can_disable_push_subscription(self):
+        User = get_user_model()
+        user = User.objects.create_user(username="roger@example.com", email="roger@example.com", password="valley-demo")
+        subscription = PushSubscription.objects.create(
+            user=user,
+            endpoint="https://push.example.com/device-1",
+            p256dh="public-key",
+            auth="auth-secret",
+        )
+        self.client.login(username="roger@example.com", password="valley-demo")
+
+        response = self.client.post(
+            reverse("remove_push_subscription"),
+            data=json.dumps({"endpoint": subscription.endpoint}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        subscription.refresh_from_db()
+        self.assertFalse(subscription.enabled)
 
 
 class RostersPageTests(TestCase):
