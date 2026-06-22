@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .calendar_sync import parse_ical_events
-from .models import Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, SundayDuty
+from .models import Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode
 
 
@@ -36,6 +36,8 @@ class DashboardTests(TestCase):
         assignment.people.add(self.user)
         duty = SundayDuty.objects.create(date=date.today(), duty_type=SundayDuty.DutyType.WORSHIP_BAND)
         duty.people.add(self.user)
+        plan = SundayPlan.objects.create(date=date.today())
+        plan.hosting.add(self.user)
 
     @patch("church.views.sync_spotify_sermon_if_due")
     def test_dashboard_requires_login(self, sync_mock):
@@ -52,6 +54,7 @@ class DashboardTests(TestCase):
         response = self.client.get(reverse("dashboard"))
         self.assertContains(response, "Good morning, Roger")
         self.assertContains(response, "Worship Band")
+        self.assertContains(response, "Hosting")
         self.assertContains(response, reverse("profile"))
 
 
@@ -177,6 +180,8 @@ class MyScheduleTests(TestCase):
         today = timezone.localdate()
         current = SundayDuty.objects.create(date=today, duty_type=SundayDuty.DutyType.WORSHIP_BAND)
         current.people.add(self.user)
+        plan = SundayPlan.objects.create(date=today)
+        plan.preaching.add(self.user)
         next_month_date = today + timedelta(days=35)
         next_month = SundayDuty.objects.create(date=next_month_date, duty_type=SundayDuty.DutyType.CATERING)
         next_month.people.add(self.user)
@@ -188,6 +193,7 @@ class MyScheduleTests(TestCase):
         self.client.login(username="roger@example.com", password="valley-demo")
         response = self.client.get(reverse("my_schedule"))
         self.assertContains(response, "Worship Band")
+        self.assertContains(response, "Preaching")
         self.assertContains(response, "Catering")
         self.assertNotContains(response, "Kids Ministry")
         self.assertContains(response, "Load more duties")
@@ -494,6 +500,10 @@ class RostersPageTests(TestCase):
         worship.people.set([self.roger, self.cath, self.tom])
         catering = SundayDuty.objects.create(date=today, duty_type=SundayDuty.DutyType.CATERING)
         catering.people.set([self.jill])
+        plan = SundayPlan.objects.create(date=today)
+        plan.preaching.set([self.roger])
+        plan.hosting.set([self.cath])
+        plan.setup.set([self.tom])
         later = SundayDuty.objects.create(date=today + timedelta(days=100), duty_type=SundayDuty.DutyType.KIDS_MINISTRY)
         later.people.set([self.tom])
 
@@ -501,6 +511,9 @@ class RostersPageTests(TestCase):
         self.client.login(username="roger@example.com", password="valley-demo")
         response = self.client.get(reverse("rosters"))
         self.assertContains(response, "This month")
+        self.assertContains(response, "Preaching:")
+        self.assertContains(response, "Hosting:")
+        self.assertContains(response, "Setup:")
         self.assertContains(response, "Worship Band:")
         self.assertContains(response, "Roger, Cath, Tom")
         self.assertContains(response, "Catering:")

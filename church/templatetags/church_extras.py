@@ -5,7 +5,9 @@ register = template.Library()
 
 @register.filter
 def names(users):
-    return ", ".join(user.get_full_name() or user.username for user in users.all())
+    if hasattr(users, "all"):
+        users = users.all()
+    return ", ".join(user.get_full_name() or user.username for user in users)
 
 
 @register.simple_tag(takes_context=True)

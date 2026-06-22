@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 from datetime import date, timedelta
 from calendar import monthrange
 
@@ -20,6 +21,28 @@ from .models import Assignment, CalendarEventCache, Notification, NotificationPr
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
 
 
+@dataclass
+class DisplayDuty:
+    date: date
+    label: str
+    people: list
+    url: str
+    sort_order: int
+
+    def get_duty_type_display(self):
+        return self.label
+
+    def get_absolute_url(self):
+        return self.url
+
+
+SUNDAY_PLAN_ROLE_FIELDS = [
+    ("preaching", "Preaching", 10),
+    ("hosting", "Hosting", 20),
+    ("setup", "Setup", 30),
+]
+
+
 def _upcoming_sunday(today):
     return today + timedelta(days=(6 - today.weekday()) % 7)
 
@@ -38,6 +61,51 @@ def _month_start(value):
 
 def _month_end(value):
     return value.replace(day=monthrange(value.year, value.month)[1])
+
+
+def _sunday_duty_sort_order(duty):
+    order = {
+        SundayDuty.DutyType.WORSHIP_BAND: 40,
+        SundayDuty.DutyType.CATERING: 50,
+        SundayDuty.DutyType.KIDS_MINISTRY: 60,
+    }
+    return order.get(duty.duty_type, 90)
+
+
+def _display_sunday_duty(duty):
+    return DisplayDuty(
+        date=duty.date,
+        label=duty.get_duty_type_display(),
+        people=list(duty.people.all()),
+        url=duty.get_absolute_url(),
+        sort_order=_sunday_duty_sort_order(duty),
+    )
+
+
+def _display_sunday_plan_roles(plans, user=None, include_empty=False):
+    items = []
+    user_pk = getattr(user, "pk", None)
+    for plan in plans:
+        for field, label, sort_order in SUNDAY_PLAN_ROLE_FIELDS:
+            people = list(getattr(plan, field).all())
+            if not include_empty and user_pk and not any(person.pk == user_pk for person in people):
+                continue
+            if not include_empty and not user_pk and not people:
+                continue
+            items.append(
+                DisplayDuty(
+                    date=plan.date,
+                    label=label,
+                    people=people,
+                    url=plan.get_absolute_url(),
+                    sort_order=sort_order,
+                )
+            )
+    return items
+
+
+def _sort_display_duties(items):
+    return sorted(items, key=lambda item: (item.date, item.sort_order, item.label))
 
 
 def _is_superadmin(user):
@@ -82,7 +150,18 @@ def dashboard(request):
     today = timezone.localdate()
     sunday = _upcoming_sunday(today)
 
-    my_assignments = SundayDuty.objects.upcoming(today).for_user(request.user).prefetch_related("people")[:4]
+    sunday_duty_items = [
+        _display_sunday_duty(duty)
+        for duty in SundayDuty.objects.upcoming(today).for_user(request.user).prefetch_related("people")
+    ]
+    sunday_plan_items = _display_sunday_plan_roles(
+        SundayPlan.objects.filter(date__gte=today)
+        .filter(Q(preaching=request.user) | Q(hosting=request.user) | Q(setup=request.user))
+        .prefetch_related("preaching", "hosting", "setup")
+        .distinct(),
+        user=request.user,
+    )
+    my_assignments = _sort_display_duties(sunday_duty_items + sunday_plan_items)[:4]
     sunday_plan = SundayPlan.objects.filter(date__gte=today).prefetch_related("preaching", "hosting", "setup").order_by("date").first()
     sunday_duties = []
     if sunday_plan:
@@ -127,13 +206,24 @@ def my_schedule(request):
     final_month = _add_months(first_month, month_count - 1)
     end_date = _month_end(final_month)
 
-    assignments = list(
-        SundayDuty.objects.upcoming(today)
-        .for_user(request.user)
-        .filter(date__lte=end_date)
-        .prefetch_related("people")
-        .order_by("date", "duty_type")
+    sunday_duty_items = [
+        _display_sunday_duty(duty)
+        for duty in (
+            SundayDuty.objects.upcoming(today)
+            .for_user(request.user)
+            .filter(date__lte=end_date)
+            .prefetch_related("people")
+            .order_by("date", "duty_type")
+        )
+    ]
+    sunday_plan_items = _display_sunday_plan_roles(
+        SundayPlan.objects.filter(date__gte=today, date__lte=end_date)
+        .filter(Q(preaching=request.user) | Q(hosting=request.user) | Q(setup=request.user))
+        .prefetch_related("preaching", "hosting", "setup")
+        .distinct(),
+        user=request.user,
     )
+    assignments = _sort_display_duties(sunday_duty_items + sunday_plan_items)
     schedule_groups = []
     for index in range(month_count):
         month = _add_months(first_month, index)
@@ -150,6 +240,9 @@ def my_schedule(request):
         SundayDuty.objects.upcoming(today)
         .for_user(request.user)
         .filter(date__gt=end_date)
+        .exists()
+        or SundayPlan.objects.filter(date__gt=end_date)
+        .filter(Q(preaching=request.user) | Q(hosting=request.user) | Q(setup=request.user))
         .exists()
     )
     return render(
@@ -179,12 +272,21 @@ def rosters(request):
     final_month = _add_months(first_month, month_count - 1)
     end_date = _month_end(final_month)
 
-    duties = list(
-        SundayDuty.objects.upcoming(today)
-        .filter(date__lte=end_date)
-        .prefetch_related("people")
-        .order_by("date", "duty_type")
+    sunday_duty_items = [
+        _display_sunday_duty(duty)
+        for duty in (
+            SundayDuty.objects.upcoming(today)
+            .filter(date__lte=end_date)
+            .prefetch_related("people")
+            .order_by("date", "duty_type")
+        )
+    ]
+    sunday_plan_items = _display_sunday_plan_roles(
+        SundayPlan.objects.filter(date__gte=today, date__lte=end_date)
+        .prefetch_related("preaching", "hosting", "setup"),
+        include_empty=True,
     )
+    duties = _sort_display_duties(sunday_duty_items + sunday_plan_items)
     roster_groups = []
     for index in range(month_count):
         month = _add_months(first_month, index)
@@ -202,7 +304,10 @@ def rosters(request):
             }
         )
 
-    has_later_duties = SundayDuty.objects.upcoming(today).filter(date__gt=end_date).exists()
+    has_later_duties = (
+        SundayDuty.objects.upcoming(today).filter(date__gt=end_date).exists()
+        or SundayPlan.objects.filter(date__gt=end_date).exists()
+    )
     return render(
         request,
         "church/rosters.html",
