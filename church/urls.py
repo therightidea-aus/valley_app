@@ -10,6 +10,7 @@ urlpatterns = [
     path("rosters/", views.rosters, name="rosters"),
     path("calendar/", views.calendar, name="calendar"),
     path("more/", views.more, name="more"),
+    path("profile/", views.profile, name="profile"),
     path("sunday-plan/<int:pk>/", views.sunday_plan_detail, name="sunday_plan_detail"),
     path("assignment/<int:pk>/", views.assignment_detail, name="assignment_detail"),
     path("sunday-duty/<int:pk>/", views.sunday_duty_detail, name="sunday_duty_detail"),

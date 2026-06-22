@@ -52,6 +52,7 @@ class DashboardTests(TestCase):
         response = self.client.get(reverse("dashboard"))
         self.assertContains(response, "Good morning, Roger")
         self.assertContains(response, "Worship Band")
+        self.assertContains(response, reverse("profile"))
 
 
 class CalendarTests(TestCase):
@@ -337,7 +338,7 @@ class RegistrationApprovalTests(TestCase):
         user = User.objects.get(email="new@example.com")
         self.assertFalse(user.is_active)
         notification = Notification.objects.get(user=self.superadmin, title="New user registration")
-        self.assertEqual(notification.target_url, reverse("more"))
+        self.assertEqual(notification.target_url, reverse("profile"))
         push_mock.assert_called_once_with(notification)
 
     def test_superadmin_can_approve_pending_user_from_more(self):
@@ -353,7 +354,7 @@ class RegistrationApprovalTests(TestCase):
         response = self.client.post(reverse("approve_pending_user", kwargs={"pk": pending_user.pk}))
 
         pending_user.refresh_from_db()
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("profile"))
         self.assertTrue(pending_user.is_active)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["new@example.com"])
@@ -373,7 +374,7 @@ class RegistrationApprovalTests(TestCase):
         response = self.client.post(reverse("approve_pending_user", kwargs={"pk": pending_user.pk}))
 
         pending_user.refresh_from_db()
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("profile"))
         self.assertTrue(pending_user.is_active)
         email_mock.assert_called_once()
 
@@ -389,10 +390,10 @@ class RegistrationApprovalTests(TestCase):
         self.client.login(username="admin@example.com", password="valley-demo")
         response = self.client.post(reverse("dismiss_pending_user", kwargs={"pk": pending_user.pk}))
 
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("profile"))
         self.assertFalse(User.objects.filter(pk=pending_user.pk).exists())
 
-    def test_superadmin_sees_pending_users_on_more_tab(self):
+    def test_superadmin_sees_pending_users_on_profile_page(self):
         User = get_user_model()
         User.objects.create_user(
             username="new@example.com",
@@ -404,11 +405,19 @@ class RegistrationApprovalTests(TestCase):
         )
 
         self.client.login(username="admin@example.com", password="valley-demo")
-        response = self.client.get(reverse("more"))
+        response = self.client.get(reverse("profile"))
 
         self.assertContains(response, "New user requests")
         self.assertContains(response, "New Person")
         self.assertContains(response, "Approve")
+
+    def test_more_tab_no_longer_shows_account_or_admin_panels(self):
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.get(reverse("more"))
+
+        self.assertContains(response, "Helpful links")
+        self.assertNotContains(response, "New user requests")
+        self.assertNotContains(response, "Admin dashboard")
 
 
 class PasswordResetTests(TestCase):
@@ -442,6 +451,30 @@ class PasswordResetTests(TestCase):
 
         self.assertRedirects(response, reverse("password_reset_done"))
         self.assertEqual(len(mail.outbox), 0)
+
+
+class PasswordChangeTests(TestCase):
+    def test_logged_in_user_can_change_password(self):
+        User = get_user_model()
+        user = User.objects.create_user(
+            username="roger@example.com",
+            email="roger@example.com",
+            password="old-password-123",
+        )
+
+        self.client.login(username="roger@example.com", password="old-password-123")
+        response = self.client.post(
+            reverse("password_change"),
+            {
+                "old_password": "old-password-123",
+                "new_password1": "new-password-456",
+                "new_password2": "new-password-456",
+            },
+        )
+
+        self.assertRedirects(response, reverse("password_change_done"))
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("new-password-456"))
 
 
 class RostersPageTests(TestCase):

@@ -4,98 +4,11 @@
 
 {% block hero %}
   <p class="eyebrow">More</p>
-  <h1 class="page-title">Settings, admin, and account.</h1>
+  <h1 class="page-title">Helpful links.</h1>
 {% endblock %}
 
 {% block content %}
   <div class="grid two">
-    <article class="card strong">
-      <div class="section-head">
-        <h2 class="section-title">Account</h2>
-      </div>
-      <div class="list">
-        <div class="item">
-          <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
-          <p class="muted">{{ request.user.email }}</p>
-        </div>
-        <div class="item">
-          <h3>Notifications</h3>
-          <p class="muted">{{ unread_count }} unread in-app notification{{ unread_count|pluralize }}</p>
-        </div>
-        <div class="item">
-          <div class="item-row">
-            <div>
-              <h3>Push notifications</h3>
-              <p class="muted" data-push-status>
-                {% if push_public_key %}
-                  {% if has_push_subscription %}Enabled on this device{% else %}Get notified when you are added to a roster{% endif %}
-                {% else %}
-                  Setup pending
-                {% endif %}
-              </p>
-            </div>
-            <button
-              class="button compact"
-              type="button"
-              data-push-toggle
-              data-vapid-public-key="{{ push_public_key }}"
-              data-subscribe-url="{% url 'save_push_subscription' %}"
-              data-unsubscribe-url="{% url 'remove_push_subscription' %}"
-              data-csrf-token="{{ csrf_token }}"
-              {% if not push_public_key %}disabled{% endif %}
-            >
-              {% if has_push_subscription %}Disable{% else %}Enable{% endif %}
-            </button>
-          </div>
-        </div>
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button class="button secondary" type="submit">Log out</button>
-        </form>
-      </div>
-    </article>
-
-    <article class="card blue">
-      <div class="section-head">
-        <h2 class="section-title">Administration</h2>
-      </div>
-      <p class="muted">Superadmins and ministry leaders can use Django admin for users, ministries, rosters, Sunday plans, calendar cache, sermons, and notifications.</p>
-      <p style="margin-top:16px"><a class="button" href="{% url 'admin:index' %}">Open admin</a></p>
-    </article>
-
-    {% if can_review_users %}
-      <article class="card strong">
-        <div class="section-head">
-          <h2 class="section-title">New user requests</h2>
-          <span class="pill dark">{{ pending_users|length }}</span>
-        </div>
-        <div class="list">
-          {% for pending_user in pending_users %}
-            <div class="item">
-              <div class="approval-row">
-                <div>
-                  <h3>{{ pending_user.get_full_name|default:pending_user.email }}</h3>
-                  <p class="muted">{{ pending_user.email }}</p>
-                </div>
-                <div class="button-row">
-                  <form method="post" action="{% url 'approve_pending_user' pending_user.pk %}">
-                    {% csrf_token %}
-                    <button class="button compact" type="submit">Approve</button>
-                  </form>
-                  <form method="post" action="{% url 'dismiss_pending_user' pending_user.pk %}">
-                    {% csrf_token %}
-                    <button class="button compact secondary" type="submit">Dismiss</button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          {% empty %}
-            <div class="empty">No new user requests.</div>
-          {% endfor %}
-        </div>
-      </article>
-    {% endif %}
-
     <article class="card">
       <div class="section-head">
         <h2 class="section-title">Bible Study Material</h2>

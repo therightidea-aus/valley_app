@@ -88,6 +88,10 @@ input {
   margin: 0 auto;
 }
 
+.hero-inner {
+  position: relative;
+}
+
 .mobile-topbar {
   display: flex;
   align-items: center;
@@ -112,6 +116,10 @@ input {
   color: var(--paper);
   font-size: 14px;
   font-weight: 800;
+}
+
+.desktop-profile-link {
+  display: none;
 }
 
 .eyebrow {
@@ -419,6 +427,10 @@ input {
   justify-content: flex-end;
 }
 
+.profile-actions {
+  justify-content: flex-start;
+}
+
 .auth-link {
   margin: 16px 0 0;
   text-align: center;
@@ -590,6 +602,13 @@ input {
 
   .mobile-topbar {
     display: none;
+  }
+
+  .desktop-profile-link {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: grid;
   }
 
   .content {

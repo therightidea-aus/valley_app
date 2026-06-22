@@ -10,8 +10,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'church/img/valley-icon-32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'church/img/valley-icon-16.png' %}">
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'church/img/valley-icon-180.png' %}">
-  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=12">
-  <script defer src="{% static 'church/app.js' %}?v=12"></script>
+  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=13">
+  <script defer src="{% static 'church/app.js' %}?v=13"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -33,8 +33,9 @@
         <div class="hero-inner">
           <div class="mobile-topbar">
             <img src="{% static 'church/img/vcc-logo-black.jpg' %}" alt="Valley Community Church">
-            <div class="avatar">{{ request.user.first_name|default:request.user.username|slice:":1" }}{{ request.user.last_name|slice:":1" }}</div>
+            <a class="avatar" href="{% url 'profile' %}" aria-label="Profile">{{ request.user.first_name|default:request.user.username|slice:":1" }}{{ request.user.last_name|slice:":1" }}</a>
           </div>
+          <a class="desktop-profile-link avatar" href="{% url 'profile' %}" aria-label="Profile">{{ request.user.first_name|default:request.user.username|slice:":1" }}{{ request.user.last_name|slice:":1" }}</a>
           {% block hero %}{% endblock %}
         </div>
       </section>

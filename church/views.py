@@ -50,7 +50,7 @@ def _superadmin_users():
 
 
 def _notify_superadmins_about_registration(user):
-    target_url = reverse("more")
+    target_url = reverse("profile")
     body = f"{user.get_full_name() or user.email} has requested access."
     for superadmin in _superadmin_users():
         Notification.objects.create(
@@ -259,6 +259,11 @@ def calendar(request):
 
 @login_required
 def more(request):
+    return render(request, "church/more.html", {"active_nav": "more"})
+
+
+@login_required
+def profile(request):
     unread_count = Notification.objects.filter(user=request.user, read_at__isnull=True).count()
     has_push_subscription = PushSubscription.objects.filter(user=request.user, enabled=True).exists()
     pending_users = []
@@ -267,10 +272,10 @@ def more(request):
         pending_users = User.objects.filter(is_active=False).order_by("date_joined", "last_name", "first_name")
     return render(
         request,
-        "church/more.html",
+        "church/profile.html",
         {
             "unread_count": unread_count,
-            "active_nav": "more",
+            "active_nav": "profile",
             "push_public_key": settings.VAPID_PUBLIC_KEY,
             "has_push_subscription": has_push_subscription,
             "pending_users": pending_users,
@@ -368,7 +373,7 @@ def remove_push_subscription(request):
 @require_POST
 def approve_pending_user(request, pk):
     if not _is_superadmin(request.user):
-        return redirect("more")
+        return redirect("profile")
     User = get_user_model()
     pending_user = get_object_or_404(User, pk=pk, is_active=False)
     pending_user.is_active = True
@@ -378,20 +383,20 @@ def approve_pending_user(request, pk):
         messages.success(request, f"{name} has been approved and emailed.")
     else:
         messages.warning(request, f"{name} has been approved, but the email could not be sent.")
-    return redirect("more")
+    return redirect("profile")
 
 
 @login_required
 @require_POST
 def dismiss_pending_user(request, pk):
     if not _is_superadmin(request.user):
-        return redirect("more")
+        return redirect("profile")
     User = get_user_model()
     pending_user = get_object_or_404(User, pk=pk, is_active=False)
     name = pending_user.get_full_name() or pending_user.email
     pending_user.delete()
     messages.success(request, f"{name} has been dismissed.")
-    return redirect("more")
+    return redirect("profile")
 
 
 def service_worker(request):
