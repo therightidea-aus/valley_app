@@ -55,6 +55,8 @@ class DashboardTests(TestCase):
         self.assertContains(response, "Good morning, Roger")
         self.assertContains(response, "Worship Band")
         self.assertContains(response, "Hosting")
+        self.assertContains(response, f"{date.today():%a} {date.today().day} {date.today():%b}")
+        self.assertNotContains(response, f"<h3>{date.today():%A} {date.today().day} {date.today():%B}</h3>")
         self.assertContains(response, 'class="item"', count=1)
         self.assertContains(response, reverse("profile"))
 

@@ -21,13 +21,10 @@
           {% for group in my_assignment_groups %}
             <a class="item" href="{{ group.url }}">
               <div class="item-row">
-                <div>
-                  <h3>{{ group.date|date:"l j F" }}</h3>
-                  <div class="responsibility-list">
-                    {% for duty in group.duties %}
-                      <p>{{ duty.get_duty_type_display }}</p>
-                    {% endfor %}
-                  </div>
+                <div class="responsibility-list">
+                  {% for duty in group.duties %}
+                    <strong>{{ duty.get_duty_type_display }}</strong>
+                  {% endfor %}
                 </div>
                 <span class="pill">{{ group.date|date:"D j M" }}</span>
               </div>
