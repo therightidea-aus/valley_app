@@ -5,7 +5,7 @@
 {% block hero %}
   <p class="eyebrow">My Schedule</p>
   <h1 class="page-title">Everything you are rostered for next.</h1>
-  <p class="hero-copy">Your Sunday duties, grouped by month and shown in date order.</p>
+  <p class="hero-copy">Your Sunday duties, grouped by month and date.</p>
 {% endblock %}
 
 {% block content %}
@@ -25,16 +25,16 @@
           </div>
         </div>
         <div class="list">
-          {% for assignment in group.duties %}
-            <a class="item" href="{{ assignment.get_absolute_url }}">
+          {% for date_group in group.date_groups %}
+            <a class="item" href="{{ date_group.url }}">
               <div class="item-row">
-                <div>
-                  <h3>{{ assignment.get_duty_type_display }}</h3>
-                  <p class="muted">Sunday duty</p>
+                <div class="responsibility-list">
+                  {% for duty in date_group.duties %}
+                    <strong>{{ duty.get_duty_type_display }}</strong>
+                  {% endfor %}
                 </div>
-                <span class="pill">{{ assignment.date|date:"D j M" }}</span>
+                <span class="pill">{{ date_group.date|date:"D j M" }}</span>
               </div>
-              <p class="muted">{{ assignment.date|date:"l j F" }}</p>
             </a>
           {% empty %}
             <div class="empty">Nothing rostered for this month.</div>

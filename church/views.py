@@ -114,7 +114,7 @@ def _group_display_duties_by_date(items, limit=4):
         if not groups or groups[-1]["date"] != duty.date:
             groups.append({"date": duty.date, "duties": [], "url": duty.get_absolute_url()})
         groups[-1]["duties"].append(duty)
-    return groups[:limit]
+    return groups[:limit] if limit else groups
 
 
 def _is_superadmin(user):
@@ -242,6 +242,7 @@ def my_schedule(request):
                 "month": month,
                 "label": "This month" if index == 0 else month.strftime("%B %Y"),
                 "duties": month_duties,
+                "date_groups": _group_display_duties_by_date(month_duties, limit=None),
             }
         )
 

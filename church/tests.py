@@ -194,10 +194,13 @@ class MyScheduleTests(TestCase):
 
     def test_my_schedule_groups_current_and_next_month_by_default(self):
         self.client.login(username="roger@example.com", password="valley-demo")
+        today = timezone.localdate()
         response = self.client.get(reverse("my_schedule"))
         self.assertContains(response, "Worship Band")
         self.assertContains(response, "Preaching")
         self.assertContains(response, "Catering")
+        self.assertContains(response, f"{today:%a} {today.day} {today:%b}")
+        self.assertContains(response, 'class="item"', count=2)
         self.assertNotContains(response, "Kids Ministry")
         self.assertContains(response, "Load more duties")
 
