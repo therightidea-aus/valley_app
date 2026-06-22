@@ -18,16 +18,19 @@
           <a class="section-link" href="{% url 'my_schedule' %}">View all</a>
         </div>
         <div class="list">
-          {% for assignment in my_assignments %}
-            <a class="item" href="{{ assignment.get_absolute_url }}">
+          {% for group in my_assignment_groups %}
+            <a class="item" href="{{ group.url }}">
               <div class="item-row">
                 <div>
-                  <h3>{{ assignment.get_duty_type_display }}</h3>
-                  <p class="muted">Sunday duty</p>
+                  <h3>{{ group.date|date:"l j F" }}</h3>
+                  <div class="responsibility-list">
+                    {% for duty in group.duties %}
+                      <p>{{ duty.get_duty_type_display }}</p>
+                    {% endfor %}
+                  </div>
                 </div>
-                <span class="pill">{{ assignment.date|date:"D j M" }}</span>
+                <span class="pill">{{ group.date|date:"D j M" }}</span>
               </div>
-              <p class="muted">{{ assignment.date|date:"l j F" }}</p>
             </a>
           {% empty %}
             <div class="empty">You do not have any upcoming responsibilities yet.</div>

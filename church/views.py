@@ -108,6 +108,15 @@ def _sort_display_duties(items):
     return sorted(items, key=lambda item: (item.date, item.sort_order, item.label))
 
 
+def _group_display_duties_by_date(items, limit=4):
+    groups = []
+    for duty in _sort_display_duties(items):
+        if not groups or groups[-1]["date"] != duty.date:
+            groups.append({"date": duty.date, "duties": [], "url": duty.get_absolute_url()})
+        groups[-1]["duties"].append(duty)
+    return groups[:limit]
+
+
 def _is_superadmin(user):
     return user.is_authenticated and (user.is_superuser or getattr(getattr(user, "profile", None), "role", "") == "superadmin")
 
@@ -161,7 +170,7 @@ def dashboard(request):
         .distinct(),
         user=request.user,
     )
-    my_assignments = _sort_display_duties(sunday_duty_items + sunday_plan_items)[:4]
+    my_assignment_groups = _group_display_duties_by_date(sunday_duty_items + sunday_plan_items)
     sunday_plan = SundayPlan.objects.filter(date__gte=today).prefetch_related("preaching", "hosting", "setup").order_by("date").first()
     sunday_duties = []
     if sunday_plan:
@@ -183,7 +192,7 @@ def dashboard(request):
         {
             "today": today,
             "upcoming_sunday": sunday,
-            "my_assignments": my_assignments,
+            "my_assignment_groups": my_assignment_groups,
             "sunday_plan": sunday_plan,
             "sunday_duties": sunday_duties,
             "events": events,
