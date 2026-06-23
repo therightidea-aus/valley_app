@@ -91,6 +91,31 @@
       </article>
     {% endif %}
 
+    {% if can_send_roster_reminders %}
+      <article class="card strong">
+        <div class="section-head">
+          <h2 class="section-title">Sunday reminder email</h2>
+        </div>
+        <div class="list">
+          <div class="item">
+            <h3>{{ roster_reminder_preview.sunday|date:"l j F" }}</h3>
+            <p class="muted">
+              {{ roster_reminder_preview.recipient_count }} volunteer email{{ roster_reminder_preview.recipient_count|pluralize }} ready to send for the next Sunday roster.
+            </p>
+          </div>
+          <form class="reminder-form" method="post" action="{% url 'send_roster_reminder' %}">
+            {% csrf_token %}
+            <label for="reminder-date">Sunday date</label>
+            <input id="reminder-date" name="date" type="date" value="{{ roster_reminder_preview.sunday|date:'Y-m-d' }}">
+            <div class="button-row profile-actions">
+              <button class="button secondary compact" type="submit" name="mode" value="preview">Preview</button>
+              <button class="button compact" type="submit" name="mode" value="send">Send emails</button>
+            </div>
+          </form>
+        </div>
+      </article>
+    {% endif %}
+
     <article class="card blue">
       <div class="section-head">
         <h2 class="section-title">Admin dashboard</h2>

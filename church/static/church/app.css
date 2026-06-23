@@ -440,6 +440,29 @@ input {
   justify-content: flex-start;
 }
 
+.reminder-form {
+  display: grid;
+  gap: 10px;
+}
+
+.reminder-form label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reminder-form input {
+  width: min(100%, 260px);
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--paper);
+  color: var(--charcoal);
+  font: inherit;
+  font-weight: 700;
+}
+
 .auth-link {
   margin: 16px 0 0;
   text-align: center;

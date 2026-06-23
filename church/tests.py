@@ -257,6 +257,75 @@ class SundayReminderEmailTests(TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
 
+class SundayReminderProfileTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.leader = User.objects.create_user(
+            username="leader@example.com",
+            email="leader@example.com",
+            password="valley-demo",
+            first_name="Leader",
+        )
+        self.leader.profile.role = Profile.Role.MINISTRY_LEADER
+        self.leader.profile.save()
+        self.regular = User.objects.create_user(
+            username="regular@example.com",
+            email="regular@example.com",
+            password="valley-demo",
+            first_name="Regular",
+        )
+        self.sunday = date(2026, 6, 28)
+        duty = SundayDuty.objects.create(date=self.sunday, duty_type=SundayDuty.DutyType.CATERING)
+        duty.people.add(self.regular)
+
+    def test_ministry_leader_sees_reminder_panel_on_profile(self):
+        self.client.login(username="leader@example.com", password="valley-demo")
+        response = self.client.get(reverse("profile"))
+
+        self.assertContains(response, "Sunday reminder email")
+        self.assertContains(response, reverse("send_roster_reminder"))
+        self.assertContains(response, "Send emails")
+
+    def test_regular_user_does_not_see_reminder_panel(self):
+        self.client.login(username="regular@example.com", password="valley-demo")
+        response = self.client.get(reverse("profile"))
+
+        self.assertNotContains(response, "Sunday reminder email")
+        self.assertNotContains(response, reverse("send_roster_reminder"))
+
+    def test_ministry_leader_can_preview_without_sending(self):
+        self.client.login(username="leader@example.com", password="valley-demo")
+        response = self.client.post(
+            reverse("send_roster_reminder"),
+            {"date": self.sunday.isoformat(), "mode": "preview"},
+        )
+
+        self.assertRedirects(response, reverse("profile"))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_ministry_leader_can_send_reminder_email(self):
+        self.client.login(username="leader@example.com", password="valley-demo")
+        response = self.client.post(
+            reverse("send_roster_reminder"),
+            {"date": self.sunday.isoformat(), "mode": "send"},
+        )
+
+        self.assertRedirects(response, reverse("profile"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["regular@example.com"])
+        self.assertIn("Catering: Regular", mail.outbox[0].body)
+
+    def test_regular_user_cannot_send_reminder_email(self):
+        self.client.login(username="regular@example.com", password="valley-demo")
+        response = self.client.post(
+            reverse("send_roster_reminder"),
+            {"date": self.sunday.isoformat(), "mode": "send"},
+        )
+
+        self.assertRedirects(response, reverse("profile"))
+        self.assertEqual(len(mail.outbox), 0)
+
+
 class NotificationTests(TestCase):
     @patch("church.signals.send_notification_push")
     def test_user_gets_notification_when_added_to_sunday_duty(self, push_mock):

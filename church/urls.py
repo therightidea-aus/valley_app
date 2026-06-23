@@ -15,6 +15,7 @@ urlpatterns = [
     path("assignment/<int:pk>/", views.assignment_detail, name="assignment_detail"),
     path("sunday-duty/<int:pk>/", views.sunday_duty_detail, name="sunday_duty_detail"),
     path("notifications/<int:pk>/dismiss/", views.dismiss_notification, name="dismiss_notification"),
+    path("roster-reminders/send/", views.send_roster_reminder, name="send_roster_reminder"),
     path("users/<int:pk>/approve/", views.approve_pending_user, name="approve_pending_user"),
     path("users/<int:pk>/dismiss/", views.dismiss_pending_user, name="dismiss_pending_user"),
     path("push/subscribe/", views.save_push_subscription, name="save_push_subscription"),

@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from calendar import monthrange
 
 from django.conf import settings
@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
-from .email import send_account_approved_email
+from .email import send_account_approved_email, send_sunday_roster_reminders
 from .forms import PublicRegistrationForm
 from .models import Assignment, CalendarEventCache, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
@@ -119,6 +119,11 @@ def _group_display_duties_by_date(items, limit=4):
 
 def _is_superadmin(user):
     return user.is_authenticated and (user.is_superuser or getattr(getattr(user, "profile", None), "role", "") == "superadmin")
+
+
+def _can_send_roster_reminders(user):
+    role = getattr(getattr(user, "profile", None), "role", "")
+    return user.is_authenticated and (user.is_superuser or role in {"superadmin", "ministry_leader"})
 
 
 def _superadmin_users():
@@ -382,6 +387,10 @@ def profile(request):
     unread_count = Notification.objects.filter(user=request.user, read_at__isnull=True).count()
     has_push_subscription = PushSubscription.objects.filter(user=request.user, enabled=True).exists()
     pending_users = []
+    can_send_roster_reminders = _can_send_roster_reminders(request.user)
+    roster_reminder_preview = None
+    if can_send_roster_reminders:
+        roster_reminder_preview = send_sunday_roster_reminders(dry_run=True)
     if _is_superadmin(request.user):
         User = get_user_model()
         pending_users = User.objects.filter(is_active=False).order_by("date_joined", "last_name", "first_name")
@@ -395,6 +404,8 @@ def profile(request):
             "has_push_subscription": has_push_subscription,
             "pending_users": pending_users,
             "can_review_users": _is_superadmin(request.user),
+            "can_send_roster_reminders": can_send_roster_reminders,
+            "roster_reminder_preview": roster_reminder_preview,
         },
     )
 
@@ -428,6 +439,39 @@ def dismiss_notification(request, pk):
     notification.read_at = timezone.now()
     notification.save(update_fields=["read_at", "updated_at"])
     return redirect(request.POST.get("next") or "dashboard")
+
+
+@login_required
+@require_POST
+def send_roster_reminder(request):
+    if not _can_send_roster_reminders(request.user):
+        return redirect("profile")
+
+    sunday = None
+    requested_date = request.POST.get("date", "").strip()
+    if requested_date:
+        try:
+            sunday = datetime.strptime(requested_date, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Please enter the roster date in YYYY-MM-DD format.")
+            return redirect("profile")
+        if sunday.weekday() != 6:
+            messages.error(request, "Roster reminder emails can only be sent for a Sunday.")
+            return redirect("profile")
+
+    dry_run = request.POST.get("mode") == "preview"
+    result = send_sunday_roster_reminders(sunday=sunday, dry_run=dry_run)
+    if dry_run:
+        messages.info(
+            request,
+            f"{result.recipient_count} volunteer email{'' if result.recipient_count == 1 else 's'} would be sent for {result.sunday:%A} {result.sunday.day} {result.sunday:%B}.",
+        )
+    else:
+        messages.success(
+            request,
+            f"Sent {result.sent_count} of {result.recipient_count} roster reminder email{'' if result.recipient_count == 1 else 's'} for {result.sunday:%A} {result.sunday.day} {result.sunday:%B}.",
+        )
+    return redirect("profile")
 
 
 @login_required
