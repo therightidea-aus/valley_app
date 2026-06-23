@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f4f4f2;color:#16191b;font-family:Arial,sans-serif">
+    <div style="max-width:640px;margin:0 auto;padding:28px 18px">
+      <div style="background:#ffffff;border:1px solid #d8ddda;border-radius:8px;padding:28px">
+        <h1 style="margin:0 0 8px;font-size:26px;line-height:1.15;color:#16191b">Sunday roster</h1>
+        <p style="margin:0 0 22px;color:#465057;font-size:15px">Hi {{ recipient.first_name|default:"there" }}, here is the Valley roster for <strong>{{ sunday|date:"l j F" }}</strong>.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:15px">
+          <thead>
+            <tr>
+              <th align="left" style="padding:10px 12px;border-bottom:2px solid #b45145;color:#16191b">Role</th>
+              <th align="left" style="padding:10px 12px;border-bottom:2px solid #b45145;color:#16191b">Assigned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for role in roles %}
+              <tr>
+                <td style="padding:12px;border-bottom:1px solid #d8ddda;font-weight:700;color:#16191b">{{ role.label }}</td>
+                <td style="padding:12px;border-bottom:1px solid #d8ddda;color:#465057">{{ role.people_names }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p style="margin:22px 0 0;color:#465057;font-size:14px">If you need to arrange a swap, please contact the ministry leader as soon as you can.</p>
+      </div>
+    </div>
+  </body>
+</html>

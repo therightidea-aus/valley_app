@@ -4,11 +4,13 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from .calendar_sync import parse_ical_events
+from .email import send_sunday_roster_reminders
 from .models import Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode
 
@@ -208,6 +210,51 @@ class MyScheduleTests(TestCase):
         self.client.login(username="roger@example.com", password="valley-demo")
         response = self.client.get(f"{reverse('my_schedule')}?months=5")
         self.assertContains(response, "Kids Ministry")
+
+
+class SundayReminderEmailTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.roger = User.objects.create_user(
+            username="roger@example.com",
+            email="roger@example.com",
+            first_name="Roger",
+        )
+        self.cath = User.objects.create_user(
+            username="cath@example.com",
+            email="cath@example.com",
+            first_name="Cath",
+        )
+        self.sunday = date(2026, 6, 28)
+        plan = SundayPlan.objects.create(date=self.sunday)
+        plan.preaching.add(self.roger)
+        plan.hosting.add(self.cath)
+        duty = SundayDuty.objects.create(date=self.sunday, duty_type=SundayDuty.DutyType.WORSHIP_BAND)
+        duty.people.add(self.roger, self.cath)
+
+    def test_sends_full_roster_to_each_unique_volunteer(self):
+        result = send_sunday_roster_reminders(sunday=self.sunday)
+
+        self.assertEqual(result.sent_count, 2)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(sorted(message.to[0] for message in mail.outbox), ["cath@example.com", "roger@example.com"])
+        self.assertIn("Your Valley roster for Sunday 28 June", mail.outbox[0].subject)
+        self.assertIn("Preaching: Roger", mail.outbox[0].body)
+        self.assertIn("Hosting: Cath", mail.outbox[0].body)
+        self.assertIn("Worship Band: Cath, Roger", mail.outbox[0].body)
+        self.assertIn("<table", mail.outbox[0].alternatives[0][0])
+
+    def test_dry_run_does_not_send_email(self):
+        result = send_sunday_roster_reminders(sunday=self.sunday, dry_run=True)
+
+        self.assertEqual(result.recipient_count, 2)
+        self.assertEqual(result.sent_count, 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_management_command_can_target_sunday(self):
+        call_command("send_sunday_reminders", date=self.sunday.isoformat(), dry_run=True)
+
+        self.assertEqual(len(mail.outbox), 0)
 
 
 class NotificationTests(TestCase):
