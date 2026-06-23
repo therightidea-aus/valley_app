@@ -25,7 +25,7 @@ class SundayDutyAdminForm(forms.ModelForm):
 
     class Meta:
         model = SundayDuty
-        fields = ("date", "people", "notes")
+        fields = ("date", "church_catering", "people", "notes")
 
     def clean_date(self):
         date = self.cleaned_data["date"]
@@ -122,6 +122,9 @@ class WorshipBandDutyAdmin(SundayDutyAdmin):
 @admin.register(CateringDuty)
 class CateringDutyAdmin(SundayDutyAdmin):
     duty_type = SundayDuty.DutyType.CATERING
+    list_display = ("date", "church_catering", "assigned_people", "updated_at")
+    list_filter = ("church_catering", "date")
+    fields = ("date", "church_catering", "people", "notes")
 
 
 @admin.register(KidsMinistryDuty)

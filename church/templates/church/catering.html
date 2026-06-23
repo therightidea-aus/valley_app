@@ -25,24 +25,30 @@
               <div>
                 <h3>{{ sunday.date|date:"l j F" }}</h3>
                 <p class="muted">
-                  {% if sunday.people %}
+                  {% if sunday.is_church_catering %}
+                    Church catering
+                  {% elif sunday.people %}
                     {{ sunday.people|names }}
                   {% else %}
                     No one rostered yet
                   {% endif %}
                 </p>
               </div>
-              <form method="post" action="{% url 'claim_catering' %}">
-                {% csrf_token %}
-                <input type="hidden" name="date" value="{{ sunday.date|date:'Y-m-d' }}">
-                {% if sunday.is_claimed_by_user %}
-                  <input type="hidden" name="action" value="remove">
-                  <button class="button compact secondary" type="submit">Remove me</button>
-                {% else %}
-                  <input type="hidden" name="action" value="claim">
-                  <button class="button compact" type="submit">Claim</button>
-                {% endif %}
-              </form>
+              {% if sunday.is_church_catering %}
+                <span class="pill dark catering-status">Church catering</span>
+              {% else %}
+                <form method="post" action="{% url 'claim_catering' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="date" value="{{ sunday.date|date:'Y-m-d' }}">
+                  {% if sunday.is_claimed_by_user %}
+                    <input type="hidden" name="action" value="remove">
+                    <button class="button compact secondary" type="submit">Remove me</button>
+                  {% else %}
+                    <input type="hidden" name="action" value="claim">
+                    <button class="button compact" type="submit">Claim</button>
+                  {% endif %}
+                </form>
+              {% endif %}
             </div>
           {% empty %}
             <div class="empty">No upcoming Sundays in this month.</div>

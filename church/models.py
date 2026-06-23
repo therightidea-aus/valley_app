@@ -101,6 +101,7 @@ class SundayDuty(TimeStampedModel):
 
     date = models.DateField()
     duty_type = models.CharField(max_length=32, choices=DutyType.choices)
+    church_catering = models.BooleanField(default=False)
     people = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="sunday_duties", blank=True)
     notes = models.TextField(blank=True)
 

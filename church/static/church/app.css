@@ -310,6 +310,10 @@ input {
   gap: 12px;
 }
 
+.catering-status {
+  align-self: center;
+}
+
 .icon-button {
   width: 32px;
   height: 32px;

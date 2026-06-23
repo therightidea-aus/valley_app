@@ -311,6 +311,7 @@ def catering(request):
                 {
                     "date": sunday,
                     "duty": duty,
+                    "is_church_catering": bool(duty and duty.church_catering),
                     "people": people,
                     "is_claimed_by_user": any(person.pk == request.user.pk for person in people),
                 }
@@ -517,6 +518,10 @@ def claim_catering(request):
         return redirect("catering")
 
     duty, _ = SundayDuty.objects.get_or_create(date=duty_date, duty_type=SundayDuty.DutyType.CATERING)
+    if duty.church_catering:
+        messages.error(request, f"Catering on {duty_date:%A} {duty_date.day} {duty_date:%B} is being handled by the church.")
+        return redirect("catering")
+
     action = request.POST.get("action")
     if action == "remove":
         duty.people.remove(request.user)

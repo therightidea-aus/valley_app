@@ -334,6 +334,25 @@ class CateringSelfServeTests(TestCase):
         self.assertNotIn(self.user, duty.people.all())
         push_mock.assert_called()
 
+    def test_church_catering_date_cannot_be_claimed(self):
+        SundayDuty.objects.create(
+            date=self.sunday,
+            duty_type=SundayDuty.DutyType.CATERING,
+            church_catering=True,
+        )
+        self.client.login(username="roger@example.com", password="valley-demo")
+
+        response = self.client.get(reverse("catering"))
+
+        self.assertContains(response, "Church catering")
+        self.assertNotContains(response, f'name="date" value="{self.sunday.isoformat()}"')
+
+        response = self.client.post(reverse("claim_catering"), {"date": self.sunday.isoformat(), "action": "claim"})
+
+        self.assertRedirects(response, reverse("catering"))
+        duty = SundayDuty.objects.get(date=self.sunday, duty_type=SundayDuty.DutyType.CATERING)
+        self.assertNotIn(self.user, duty.people.all())
+
 
 class SundayReminderEmailTests(TestCase):
     def setUp(self):
