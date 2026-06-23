@@ -393,6 +393,18 @@ class SundayReminderEmailTests(TestCase):
         self.assertEqual(result.sent_count, 0)
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_church_catering_flows_into_reminder_email(self):
+        SundayDuty.objects.create(
+            date=self.sunday,
+            duty_type=SundayDuty.DutyType.CATERING,
+            church_catering=True,
+        )
+
+        send_sunday_roster_reminders(sunday=self.sunday)
+
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertIn("Catering: Church catering", mail.outbox[0].body)
+
     def test_management_command_can_target_sunday(self):
         call_command("send_sunday_reminders", date=self.sunday.isoformat(), dry_run=True)
 

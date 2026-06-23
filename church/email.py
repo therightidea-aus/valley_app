@@ -61,14 +61,16 @@ def build_sunday_roster_context(sunday):
 
     for duty in SundayDuty.objects.filter(date=sunday).prefetch_related("people").order_by("duty_type"):
         people = _people_for(duty.people.all())
+        is_church_catering = duty.duty_type == SundayDuty.DutyType.CATERING and duty.church_catering
         roles.append(
             {
                 "label": duty.get_duty_type_display(),
-                "people": people,
-                "people_names": ", ".join(_name(person) for person in people) or "TBC",
+                "people": [] if is_church_catering else people,
+                "people_names": "Church catering" if is_church_catering else ", ".join(_name(person) for person in people) or "TBC",
             }
         )
-        volunteer_ids.update(person.pk for person in people)
+        if not is_church_catering:
+            volunteer_ids.update(person.pk for person in people)
 
     User = get_user_model()
     recipients = (
