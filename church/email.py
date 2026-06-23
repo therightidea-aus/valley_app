@@ -113,6 +113,37 @@ def send_sunday_roster_reminders(sunday=None, dry_run=False):
     return RosterReminderResult(sent_count=sent_count, recipient_count=len(recipients), sunday=sunday, roles=roles)
 
 
+def send_announcement_email(announcement):
+    User = get_user_model()
+    recipients = list(User.objects.filter(is_active=True).exclude(email="").order_by("email"))
+    if not recipients:
+        return 0
+
+    subject = f"Valley update: {announcement.title}"
+    text_body = render_to_string("church/emails/announcement.txt", {"announcement": announcement})
+    html_body = render_to_string("church/emails/announcement.html", {"announcement": announcement})
+    sent_count = 0
+    for recipient in recipients:
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[recipient.email],
+        )
+        email.attach_alternative(html_body, "text/html")
+        try:
+            email.send(fail_silently=False)
+        except Exception:
+            logger.exception("Could not send announcement %s to user %s", announcement.pk, recipient.pk)
+            continue
+        sent_count += 1
+
+    if sent_count:
+        announcement.email_sent_at = timezone.now()
+        announcement.save(update_fields=["email_sent_at", "updated_at"])
+    return sent_count
+
+
 def send_account_approved_email(user, request):
     if not user.email:
         return False

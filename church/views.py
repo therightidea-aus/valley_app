@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
 from .email import send_account_approved_email, send_sunday_roster_reminders
 from .forms import PublicRegistrationForm
-from .models import Assignment, CalendarEventCache, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
+from .models import Announcement, Assignment, CalendarEventCache, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
 
 
@@ -190,6 +190,7 @@ def dashboard(request):
             "-is_latest", "-published_on"
         ).first()
     notifications = Notification.objects.filter(user=request.user, read_at__isnull=True)[:3]
+    announcements = Announcement.objects.filter(archived=False)[:3]
 
     return render(
         request,
@@ -203,6 +204,7 @@ def dashboard(request):
             "events": events,
             "latest_sermon": latest_sermon,
             "notifications": notifications,
+            "announcements": announcements,
             "active_nav": "home",
         },
     )

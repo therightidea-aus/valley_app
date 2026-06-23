@@ -210,6 +210,26 @@ class SermonSource(TimeStampedModel):
         return self.title
 
 
+class Announcement(TimeStampedModel):
+    title = models.CharField(max_length=160)
+    body = models.TextField()
+    archived = models.BooleanField(default=False)
+    email_sent_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="announcements_created",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
 class Notification(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
     title = models.CharField(max_length=160)

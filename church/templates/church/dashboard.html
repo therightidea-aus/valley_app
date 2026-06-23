@@ -12,6 +12,22 @@
 {% block content %}
   <div class="grid two">
     <div class="grid">
+      {% if announcements %}
+        <article class="card strong">
+          <div class="section-head">
+            <h2 class="section-title">Announcements</h2>
+          </div>
+          <div class="list">
+            {% for announcement in announcements %}
+              <div class="item announcement-item">
+                <h3>{{ announcement.title }}</h3>
+                <p class="muted announcement-body">{{ announcement.body|linebreaksbr }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </article>
+      {% endif %}
+
       <article class="card strong">
         <div class="section-head">
           <h2 class="section-title">My upcoming responsibilities</h2>

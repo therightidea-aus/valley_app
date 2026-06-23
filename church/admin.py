@@ -3,6 +3,7 @@ from django.contrib import admin
 from types import MethodType
 
 from .models import (
+    Announcement,
     CalendarEventCache,
     CalendarFeed,
     Notification,
@@ -16,6 +17,7 @@ from .models import (
     SundayPlan,
     WorshipBandDuty,
 )
+from .email import send_announcement_email
 
 
 class SundayDutyAdminForm(forms.ModelForm):
@@ -36,6 +38,42 @@ class SundayDutyAdminForm(forms.ModelForm):
             label = SundayDuty.DutyType(self.duty_type).label
             raise forms.ValidationError(f"A {label} roster already exists for this date. Edit that entry instead.")
         return date
+
+
+class AnnouncementAdminForm(forms.ModelForm):
+    email_all_users = forms.BooleanField(
+        required=False,
+        label="Email all active users",
+        help_text="Send this announcement by email when it is first created.",
+    )
+
+    class Meta:
+        model = Announcement
+        fields = ("title", "body", "archived", "email_all_users")
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    form = AnnouncementAdminForm
+    list_display = ("title", "archived", "email_sent_at", "created_by", "created_at")
+    list_filter = ("archived", "email_sent_at", "created_at")
+    search_fields = ("title", "body")
+    readonly_fields = ("created_by", "email_sent_at", "created_at", "updated_at")
+
+    def get_fields(self, request, obj=None):
+        fields = ["title", "body", "archived"]
+        if obj is None:
+            fields.append("email_all_users")
+        fields.extend(["created_by", "email_sent_at", "created_at", "updated_at"])
+        return fields
+
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by_id:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+        if not change and form.cleaned_data.get("email_all_users"):
+            sent_count = send_announcement_email(obj)
+            self.message_user(request, f"Announcement emailed to {sent_count} active user(s).")
 
 
 @admin.register(Profile)
@@ -179,6 +217,7 @@ ADMIN_MENU_GROUPS = [
     (
         "System Settings",
         {
+            "Announcement",
             "CalendarFeed",
             "CalendarEventCache",
             "SermonSource",

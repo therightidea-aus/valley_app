@@ -10,8 +10,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .calendar_sync import parse_ical_events
-from .email import send_sunday_roster_reminders
-from .models import Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, SundayDuty, SundayPlan
+from .email import send_announcement_email, send_sunday_roster_reminders
+from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode
 
 
@@ -61,6 +61,20 @@ class DashboardTests(TestCase):
         self.assertNotContains(response, f"<h3>{date.today():%A} {date.today().day} {date.today():%B}</h3>")
         self.assertContains(response, 'class="item"', count=1)
         self.assertContains(response, reverse("profile"))
+
+    @patch("church.views.sync_spotify_sermon_if_due")
+    def test_dashboard_shows_active_announcements_only(self, sync_mock):
+        sync_mock.return_value = None
+        Announcement.objects.create(title="Members meeting", body="There is a meeting after church.")
+        Announcement.objects.create(title="Old update", body="Archived text", archived=True)
+
+        self.client.login(username="roger@example.com", password="valley-demo")
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertContains(response, "Announcements")
+        self.assertContains(response, "Members meeting")
+        self.assertContains(response, "There is a meeting after church.")
+        self.assertNotContains(response, "Old update")
 
 
 class CalendarTests(TestCase):
@@ -152,6 +166,62 @@ END:VCALENDAR
         end = timezone.make_aware(datetime(2026, 7, 8, 0, 0))
         events = parse_ical_events(raw_calendar, start, end)
         self.assertEqual([event.starts_at.date() for event in events], [date(2026, 6, 21), date(2026, 6, 28), date(2026, 7, 5)])
+
+
+class AnnouncementTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(
+            username="admin@example.com",
+            email="admin@example.com",
+            password="valley-demo",
+            first_name="Admin",
+        )
+        User.objects.create_user(
+            username="roger@example.com",
+            email="roger@example.com",
+            password="valley-demo",
+            first_name="Roger",
+        )
+        User.objects.create_user(
+            username="inactive@example.com",
+            email="inactive@example.com",
+            password="valley-demo",
+            is_active=False,
+        )
+
+    def test_send_announcement_email_sends_to_active_users_only(self):
+        announcement = Announcement.objects.create(title="Prayer night", body="Join us this Wednesday.")
+
+        sent_count = send_announcement_email(announcement)
+
+        self.assertEqual(sent_count, 2)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(sorted(message.to[0] for message in mail.outbox), ["admin@example.com", "roger@example.com"])
+        self.assertIn("Valley update: Prayer night", mail.outbox[0].subject)
+        self.assertIn("Join us this Wednesday.", mail.outbox[0].body)
+        announcement.refresh_from_db()
+        self.assertIsNotNone(announcement.email_sent_at)
+
+    def test_admin_creation_toggle_emails_all_active_users(self):
+        self.client.login(username="admin@example.com", password="valley-demo")
+
+        response = self.client.post(
+            reverse("admin:church_announcement_add"),
+            {
+                "title": "Church lunch",
+                "body": "Please bring something to share.",
+                "archived": "",
+                "email_all_users": "on",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        announcement = Announcement.objects.get(title="Church lunch")
+        self.assertEqual(announcement.created_by, self.admin)
+        self.assertIsNotNone(announcement.email_sent_at)
+        self.assertEqual(len(mail.outbox), 2)
 
 
 class SpotifySyncTests(TestCase):

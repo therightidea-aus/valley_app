@@ -296,6 +296,14 @@ input {
   line-height: 1.35;
 }
 
+.announcement-item {
+  gap: 10px;
+}
+
+.announcement-body {
+  line-height: 1.6;
+}
+
 .icon-button {
   width: 32px;
   height: 32px;
