@@ -282,6 +282,59 @@ class MyScheduleTests(TestCase):
         self.assertContains(response, "Kids Ministry")
 
 
+class CateringSelfServeTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="roger@example.com",
+            email="roger@example.com",
+            password="valley-demo",
+            first_name="Roger",
+            last_name="Curran",
+        )
+        today = timezone.localdate()
+        self.sunday = today + timedelta(days=(6 - today.weekday()) % 7)
+
+    def test_catering_tab_replaces_schedule_tab_in_primary_nav(self):
+        self.client.login(username="roger@example.com", password="valley-demo")
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertContains(response, reverse("catering"))
+        self.assertContains(response, "Catering")
+        self.assertNotContains(response, ">My Schedule</a>")
+        self.assertNotContains(response, "<span>Schedule</span>")
+        self.assertContains(response, reverse("my_schedule"))
+
+    def test_catering_page_lists_upcoming_sundays(self):
+        self.client.login(username="roger@example.com", password="valley-demo")
+        response = self.client.get(reverse("catering"))
+
+        self.assertContains(response, "Claim a Sunday.")
+        self.assertContains(response, self.sunday.strftime("%Y-%m-%d"))
+        self.assertContains(response, "Claim")
+
+    @patch("church.signals.send_notification_push")
+    def test_user_can_claim_and_remove_catering(self, push_mock):
+        self.client.login(username="roger@example.com", password="valley-demo")
+
+        response = self.client.post(reverse("claim_catering"), {"date": self.sunday.isoformat(), "action": "claim"})
+
+        self.assertRedirects(response, reverse("catering"))
+        duty = SundayDuty.objects.get(date=self.sunday, duty_type=SundayDuty.DutyType.CATERING)
+        self.assertIn(self.user, duty.people.all())
+
+        response = self.client.get(reverse("catering"))
+        self.assertContains(response, "Roger Curran")
+        self.assertContains(response, "Remove me")
+
+        response = self.client.post(reverse("claim_catering"), {"date": self.sunday.isoformat(), "action": "remove"})
+
+        self.assertRedirects(response, reverse("catering"))
+        duty.refresh_from_db()
+        self.assertNotIn(self.user, duty.people.all())
+        push_mock.assert_called()
+
+
 class SundayReminderEmailTests(TestCase):
     def setUp(self):
         User = get_user_model()

@@ -117,6 +117,14 @@ def _group_display_duties_by_date(items, limit=4):
     return groups[:limit] if limit else groups
 
 
+def _sundays_between(start_date, end_date):
+    days_until_sunday = (6 - start_date.weekday()) % 7
+    current = start_date + timedelta(days=days_until_sunday)
+    while current <= end_date:
+        yield current
+        current += timedelta(days=7)
+
+
 def _is_superadmin(user):
     return user.is_authenticated and (user.is_superuser or getattr(getattr(user, "profile", None), "role", "") == "superadmin")
 
@@ -273,6 +281,54 @@ def my_schedule(request):
             "next_month_count": min(month_count + 2, 12),
             "can_load_more": month_count < 12 and has_later_duties,
             "active_nav": "schedule",
+        },
+    )
+
+
+@login_required
+def catering(request):
+    today = timezone.localdate()
+    first_month = _month_start(today)
+    final_month = _add_months(first_month, 2)
+    end_date = _month_end(final_month)
+    duties_by_date = {
+        duty.date: duty
+        for duty in SundayDuty.objects.filter(
+            date__gte=today,
+            date__lte=end_date,
+            duty_type=SundayDuty.DutyType.CATERING,
+        ).prefetch_related("people")
+    }
+
+    catering_groups = []
+    for index in range(3):
+        month = _add_months(first_month, index)
+        sundays = []
+        for sunday in _sundays_between(max(today, month), _month_end(month)):
+            duty = duties_by_date.get(sunday)
+            people = list(duty.people.all()) if duty else []
+            sundays.append(
+                {
+                    "date": sunday,
+                    "duty": duty,
+                    "people": people,
+                    "is_claimed_by_user": any(person.pk == request.user.pk for person in people),
+                }
+            )
+        catering_groups.append(
+            {
+                "month": month,
+                "label": "This month" if index == 0 else month.strftime("%B %Y"),
+                "sundays": sundays,
+            }
+        )
+
+    return render(
+        request,
+        "church/catering.html",
+        {
+            "catering_groups": catering_groups,
+            "active_nav": "catering",
         },
     )
 
@@ -441,6 +497,34 @@ def dismiss_notification(request, pk):
     notification.read_at = timezone.now()
     notification.save(update_fields=["read_at", "updated_at"])
     return redirect(request.POST.get("next") or "dashboard")
+
+
+@login_required
+@require_POST
+def claim_catering(request):
+    requested_date = request.POST.get("date", "").strip()
+    try:
+        duty_date = datetime.strptime(requested_date, "%Y-%m-%d").date()
+    except ValueError:
+        messages.error(request, "Please choose a valid Sunday.")
+        return redirect("catering")
+
+    today = timezone.localdate()
+    first_month = _month_start(today)
+    end_date = _month_end(_add_months(first_month, 2))
+    if duty_date < today or duty_date > end_date or duty_date.weekday() != 6:
+        messages.error(request, "Please choose a Sunday in the next three months.")
+        return redirect("catering")
+
+    duty, _ = SundayDuty.objects.get_or_create(date=duty_date, duty_type=SundayDuty.DutyType.CATERING)
+    action = request.POST.get("action")
+    if action == "remove":
+        duty.people.remove(request.user)
+        messages.success(request, f"You have been removed from Catering on {duty_date:%A} {duty_date.day} {duty_date:%B}.")
+    else:
+        duty.people.add(request.user)
+        messages.success(request, f"You have claimed Catering on {duty_date:%A} {duty_date.day} {duty_date:%B}.")
+    return redirect("catering")
 
 
 @login_required
