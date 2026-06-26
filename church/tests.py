@@ -76,6 +76,21 @@ class DashboardTests(TestCase):
         self.assertContains(response, "There is a meeting after church.")
         self.assertNotContains(response, "Old update")
 
+    @patch("church.views.sync_spotify_sermon_if_due")
+    def test_dashboard_this_sunday_shows_church_catering(self, sync_mock):
+        sync_mock.return_value = None
+        SundayDuty.objects.create(
+            date=date.today(),
+            duty_type=SundayDuty.DutyType.CATERING,
+            church_catering=True,
+        )
+
+        self.client.login(username="roger@example.com", password="valley-demo")
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertContains(response, "Catering")
+        self.assertContains(response, "Church catering")
+
 
 class CalendarTests(TestCase):
     def setUp(self):

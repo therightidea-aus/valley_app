@@ -62,7 +62,16 @@
             <div class="mini"><span>Hosting</span><strong>{{ sunday_plan.hosting|names|default:"TBC" }}</strong></div>
             <div class="mini"><span>Setup</span><strong>{{ sunday_plan.setup|names|default:"TBC" }}</strong></div>
             {% for duty in sunday_duties %}
-              <div class="mini"><span>{{ duty.get_duty_type_display }}</span><strong>{{ duty.people|names|default:"TBC" }}</strong></div>
+              <div class="mini">
+                <span>{{ duty.get_duty_type_display }}</span>
+                <strong>
+                  {% if duty.duty_type == "catering" and duty.church_catering %}
+                    Church catering
+                  {% else %}
+                    {{ duty.people|names|default:"TBC" }}
+                  {% endif %}
+                </strong>
+              </div>
             {% endfor %}
           </div>
         {% else %}
