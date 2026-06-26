@@ -36,6 +36,14 @@
               </div>
               {% if sunday.is_church_catering %}
                 <span class="pill dark catering-status">Church catering</span>
+              {% elif sunday.is_claimed_by_user %}
+                <form class="pill dark catering-status catering-claim-label" method="post" action="{% url 'claim_catering' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="date" value="{{ sunday.date|date:'Y-m-d' }}">
+                  <input type="hidden" name="action" value="remove">
+                  <span>{{ sunday.people|names }}</span>
+                  <button class="catering-remove-button" type="submit" aria-label="Remove yourself from catering">×</button>
+                </form>
               {% elif sunday.people %}
                 <span class="pill dark catering-status">{{ sunday.people|names }}</span>
               {% else %}

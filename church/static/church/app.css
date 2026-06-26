@@ -314,6 +314,30 @@ input {
   align-self: center;
 }
 
+.catering-claim-label {
+  gap: 8px;
+  border: 0;
+}
+
+.catering-remove-button {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--red);
+  color: var(--paper);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.catering-remove-button:hover {
+  background: #833b32;
+}
+
 .icon-button {
   width: 32px;
   height: 32px;

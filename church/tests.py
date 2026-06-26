@@ -325,8 +325,15 @@ class CateringSelfServeTests(TestCase):
 
         response = self.client.get(reverse("catering"))
         self.assertContains(response, "Roger Curran")
-        self.assertNotContains(response, f'name="date" value="{self.sunday.isoformat()}"')
+        self.assertContains(response, "Remove yourself from catering")
+        self.assertContains(response, f'name="date" value="{self.sunday.isoformat()}"')
         push_mock.assert_called()
+
+        response = self.client.post(reverse("claim_catering"), {"date": self.sunday.isoformat(), "action": "remove"})
+
+        self.assertRedirects(response, reverse("catering"))
+        duty.refresh_from_db()
+        self.assertNotIn(self.user, duty.people.all())
 
     @patch("church.signals.send_notification_push")
     def test_claimed_catering_date_cannot_be_claimed_by_someone_else(self, push_mock):
@@ -346,6 +353,11 @@ class CateringSelfServeTests(TestCase):
         self.assertRedirects(response, reverse("catering"))
         duty.refresh_from_db()
         self.assertNotIn(self.user, duty.people.all())
+
+        response = self.client.get(reverse("catering"))
+        self.assertContains(response, "Other")
+        self.assertNotContains(response, "Remove yourself from catering")
+        self.assertNotContains(response, f'name="date" value="{self.sunday.isoformat()}"')
 
     def test_church_catering_date_cannot_be_claimed(self):
         SundayDuty.objects.create(
