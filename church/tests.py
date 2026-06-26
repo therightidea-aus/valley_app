@@ -314,7 +314,7 @@ class CateringSelfServeTests(TestCase):
         self.assertContains(response, "Claim")
 
     @patch("church.signals.send_notification_push")
-    def test_user_can_claim_and_remove_catering(self, push_mock):
+    def test_user_can_claim_available_catering_date(self, push_mock):
         self.client.login(username="roger@example.com", password="valley-demo")
 
         response = self.client.post(reverse("claim_catering"), {"date": self.sunday.isoformat(), "action": "claim"})
@@ -325,14 +325,27 @@ class CateringSelfServeTests(TestCase):
 
         response = self.client.get(reverse("catering"))
         self.assertContains(response, "Roger Curran")
-        self.assertContains(response, "Remove me")
+        self.assertNotContains(response, f'name="date" value="{self.sunday.isoformat()}"')
+        push_mock.assert_called()
 
-        response = self.client.post(reverse("claim_catering"), {"date": self.sunday.isoformat(), "action": "remove"})
+    @patch("church.signals.send_notification_push")
+    def test_claimed_catering_date_cannot_be_claimed_by_someone_else(self, push_mock):
+        User = get_user_model()
+        other = User.objects.create_user(
+            username="other@example.com",
+            email="other@example.com",
+            password="valley-demo",
+            first_name="Other",
+        )
+        duty = SundayDuty.objects.create(date=self.sunday, duty_type=SundayDuty.DutyType.CATERING)
+        duty.people.add(other)
+        self.client.login(username="roger@example.com", password="valley-demo")
+
+        response = self.client.post(reverse("claim_catering"), {"date": self.sunday.isoformat(), "action": "claim"})
 
         self.assertRedirects(response, reverse("catering"))
         duty.refresh_from_db()
         self.assertNotIn(self.user, duty.people.all())
-        push_mock.assert_called()
 
     def test_church_catering_date_cannot_be_claimed(self):
         SundayDuty.objects.create(

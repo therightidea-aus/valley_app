@@ -526,6 +526,8 @@ def claim_catering(request):
     if action == "remove":
         duty.people.remove(request.user)
         messages.success(request, f"You have been removed from Catering on {duty_date:%A} {duty_date.day} {duty_date:%B}.")
+    elif duty.people.exclude(pk=request.user.pk).exists():
+        messages.error(request, f"Catering on {duty_date:%A} {duty_date.day} {duty_date:%B} has already been claimed.")
     else:
         duty.people.add(request.user)
         messages.success(request, f"You have claimed Catering on {duty_date:%A} {duty_date.day} {duty_date:%B}.")
