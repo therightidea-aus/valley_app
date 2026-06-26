@@ -445,6 +445,18 @@ class SundayReminderEmailTests(TestCase):
         self.assertEqual(len(mail.outbox), 2)
         self.assertIn("Catering: Church catering", mail.outbox[0].body)
 
+    def test_sunday_plan_notes_flow_into_reminder_email(self):
+        plan = SundayPlan.objects.get(date=self.sunday)
+        plan.notes = "Please arrive by 9:30am.\nBring your lanyard."
+        plan.save(update_fields=["notes"])
+
+        send_sunday_roster_reminders(sunday=self.sunday)
+
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertIn("Notes:", mail.outbox[0].body)
+        self.assertIn("Please arrive by 9:30am.", mail.outbox[0].body)
+        self.assertIn("Bring your lanyard.", mail.outbox[0].alternatives[0][0])
+
     def test_management_command_can_target_sunday(self):
         call_command("send_sunday_reminders", date=self.sunday.isoformat(), dry_run=True)
 

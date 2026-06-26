@@ -4,6 +4,11 @@ Here is the Valley roster for {{ sunday|date:"l j F" }}.
 
 {% for role in roles %}{{ role.label }}: {{ role.people_names }}
 {% endfor %}
+{% if notes %}
+Notes:
+{{ notes }}
+
+{% endif %}
 If you need to arrange a swap, please contact the ministry leader as soon as you can.
 
 Valley Community Church

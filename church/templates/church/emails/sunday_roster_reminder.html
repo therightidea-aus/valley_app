@@ -21,6 +21,12 @@
             {% endfor %}
           </tbody>
         </table>
+        {% if notes %}
+          <div style="margin:22px 0 0;padding:16px;border-radius:8px;background:#f2f3f3;color:#465057;font-size:15px;line-height:1.55">
+            <strong style="display:block;margin-bottom:6px;color:#16191b">Notes</strong>
+            <div style="white-space:pre-line">{{ notes }}</div>
+          </div>
+        {% endif %}
         <p style="margin:22px 0 0;color:#465057;font-size:14px">If you need to arrange a swap, please contact the ministry leader as soon as you can.</p>
       </div>
     </div>

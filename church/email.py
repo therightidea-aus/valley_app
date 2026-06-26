@@ -40,6 +40,7 @@ def build_sunday_roster_context(sunday):
     roles = []
     volunteer_ids = set()
     plan = SundayPlan.objects.filter(date=sunday).prefetch_related("preaching", "hosting", "setup").first()
+    notes = plan.notes.strip() if plan and plan.notes else ""
 
     if plan:
         for label, people in (
@@ -80,7 +81,7 @@ def build_sunday_roster_context(sunday):
         .distinct()
         .order_by("first_name", "last_name", "email")
     )
-    return {"sunday": sunday, "roles": roles, "recipients": list(recipients)}
+    return {"sunday": sunday, "roles": roles, "recipients": list(recipients), "notes": notes}
 
 
 def send_sunday_roster_reminders(sunday=None, dry_run=False):
