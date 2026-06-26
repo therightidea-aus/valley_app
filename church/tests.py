@@ -821,6 +821,17 @@ class RostersPageTests(TestCase):
         self.assertContains(response, "Jill")
         self.assertContains(response, "Load more rosters")
 
+    def test_rosters_show_church_catering_label(self):
+        today = timezone.localdate()
+        SundayDuty.objects.filter(date=today, duty_type=SundayDuty.DutyType.CATERING).delete()
+        SundayDuty.objects.create(date=today, duty_type=SundayDuty.DutyType.CATERING, church_catering=True)
+
+        self.client.login(username="roger@example.com", password="valley-demo")
+        response = self.client.get(reverse("rosters"))
+
+        self.assertContains(response, "Catering:")
+        self.assertContains(response, "Church catering")
+
 
 class SundayDutyAdminTests(TestCase):
     def setUp(self):

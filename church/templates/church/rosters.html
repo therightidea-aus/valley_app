@@ -34,7 +34,13 @@
                 {% for duty in date_group.duties %}
                   <a class="roster-line" href="{{ duty.get_absolute_url }}">
                     <strong>{{ duty.get_duty_type_display }}:</strong>
-                    <span>{{ duty.people|names|default:"TBC" }}</span>
+                    <span>
+                      {% if duty.display_people %}
+                        {{ duty.display_people }}
+                      {% else %}
+                        {{ duty.people|names|default:"TBC" }}
+                      {% endif %}
+                    </span>
                   </a>
                 {% endfor %}
               </div>

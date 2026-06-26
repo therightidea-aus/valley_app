@@ -28,6 +28,7 @@ class DisplayDuty:
     people: list
     url: str
     sort_order: int
+    display_people: str = ""
 
     def get_duty_type_display(self):
         return self.label
@@ -73,12 +74,16 @@ def _sunday_duty_sort_order(duty):
 
 
 def _display_sunday_duty(duty):
+    display_people = ""
+    if duty.duty_type == SundayDuty.DutyType.CATERING and duty.church_catering:
+        display_people = "Church catering"
     return DisplayDuty(
         date=duty.date,
         label=duty.get_duty_type_display(),
         people=list(duty.people.all()),
         url=duty.get_absolute_url(),
         sort_order=_sunday_duty_sort_order(duty),
+        display_people=display_people,
     )
 
 
