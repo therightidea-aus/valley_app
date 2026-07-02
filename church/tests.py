@@ -894,10 +894,32 @@ class SundayDutyAdminTests(TestCase):
         self.client.login(username="admin@example.com", password="valley-demo")
         response = self.client.get("/admin/")
         self.assertContains(response, "Rosters")
+        self.assertContains(response, "Sunday duties table")
         self.assertContains(response, "System Settings")
         self.assertContains(response, "Auth and Users")
         self.assertNotContains(response, "Ministries")
         self.assertNotContains(response, "Assignments")
+
+    def test_sunday_duty_matrix_shows_roster_table(self):
+        plan = SundayPlan.objects.create(date=date(2026, 6, 21))
+        plan.preaching.add(self.volunteer)
+        SundayDuty.objects.create(
+            date=date(2026, 6, 28),
+            duty_type=SundayDuty.DutyType.CATERING,
+            church_catering=True,
+        )
+
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.get("/admin/sunday-duty-matrix/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sunday duties table")
+        self.assertContains(response, "Preaching")
+        self.assertContains(response, "Worship Band")
+        self.assertContains(response, "Catering")
+        self.assertContains(response, "volunteer@example.com")
+        self.assertContains(response, "Church catering")
+        self.assertNotContains(response, "TBC")
 
     def test_ministry_leader_role_gets_roster_admin_only(self):
         User = get_user_model()
@@ -917,8 +939,12 @@ class SundayDutyAdminTests(TestCase):
         response = self.client.get("/admin/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Rosters")
+        self.assertContains(response, "Sunday duties table")
         self.assertNotContains(response, "Auth and Users")
         self.assertNotContains(response, "System Settings")
+
+        matrix_response = self.client.get("/admin/sunday-duty-matrix/")
+        self.assertEqual(matrix_response.status_code, 200)
 
     def test_regular_role_has_no_admin_access(self):
         User = get_user_model()

@@ -1,5 +1,8 @@
 from django import forms
 from django.contrib import admin
+from django.core.exceptions import PermissionDenied
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from types import MethodType
 
 from .models import (
@@ -20,6 +23,19 @@ from .models import (
 from .email import send_announcement_email
 
 
+SUNDAY_PLAN_MATRIX_ROWS = [
+    ("preaching", "Preaching"),
+    ("hosting", "Hosting"),
+    ("setup", "Setup"),
+]
+
+SUNDAY_DUTY_MATRIX_ROWS = [
+    (SundayDuty.DutyType.WORSHIP_BAND, "Worship Band"),
+    (SundayDuty.DutyType.CATERING, "Catering"),
+    (SundayDuty.DutyType.KIDS_MINISTRY, "Kids Ministry"),
+]
+
+
 class SundayDutyAdminForm(forms.ModelForm):
     duty_type = None
 
@@ -38,6 +54,71 @@ class SundayDutyAdminForm(forms.ModelForm):
             label = SundayDuty.DutyType(self.duty_type).label
             raise forms.ValidationError(f"A {label} roster already exists for this date. Edit that entry instead.")
         return date
+
+
+def _name_list(users):
+    return ", ".join(user.get_full_name() or user.username for user in users)
+
+
+def _can_view_sunday_duty_matrix(user):
+    role = getattr(getattr(user, "profile", None), "role", "")
+    return user.is_active and user.is_staff and (user.is_superuser or role in {Profile.Role.SUPERADMIN, Profile.Role.MINISTRY_LEADER})
+
+
+def _build_sunday_duty_matrix():
+    plans = {
+        plan.date: plan
+        for plan in SundayPlan.objects.prefetch_related("preaching", "hosting", "setup").order_by("date")
+    }
+    duties = list(SundayDuty.objects.prefetch_related("people").order_by("date", "duty_type"))
+    duties_by_date_type = {(duty.date, duty.duty_type): duty for duty in duties}
+
+    dates = set()
+    for plan in plans.values():
+        if plan.preaching.exists() or plan.hosting.exists() or plan.setup.exists():
+            dates.add(plan.date)
+    for duty in duties:
+        if duty.church_catering or duty.people.exists():
+            dates.add(duty.date)
+    dates = sorted(dates)
+
+    rows = []
+    for field, label in SUNDAY_PLAN_MATRIX_ROWS:
+        cells = []
+        for sunday in dates:
+            plan = plans.get(sunday)
+            people = list(getattr(plan, field).all()) if plan else []
+            cells.append(_name_list(people))
+        rows.append({"label": label, "cells": cells})
+
+    for duty_type, label in SUNDAY_DUTY_MATRIX_ROWS:
+        cells = []
+        for sunday in dates:
+            duty = duties_by_date_type.get((sunday, duty_type))
+            if duty and duty_type == SundayDuty.DutyType.CATERING and duty.church_catering:
+                cells.append("Church catering")
+            elif duty:
+                cells.append(_name_list(list(duty.people.all())))
+            else:
+                cells.append("")
+        rows.append({"label": label, "cells": cells})
+
+    return dates, rows
+
+
+def sunday_duty_matrix_view(self, request):
+    if not _can_view_sunday_duty_matrix(request.user):
+        raise PermissionDenied
+
+    dates, rows = _build_sunday_duty_matrix()
+    context = {
+        **self.each_context(request),
+        "title": "Sunday duties table",
+        "dates": dates,
+        "rows": rows,
+        "opts": SundayDuty._meta,
+    }
+    return TemplateResponse(request, "admin/sunday_duty_matrix.html", context)
 
 
 class AnnouncementAdminForm(forms.ModelForm):
@@ -250,6 +331,17 @@ def grouped_admin_app_list(self, request, app_label=None):
     used_model_names = set()
     for label, model_names in ADMIN_MENU_GROUPS:
         group_models = [model for model in models if model["object_name"] in model_names]
+        if label == "Rosters" and _can_view_sunday_duty_matrix(request.user):
+            group_models.append(
+                {
+                    "name": "Sunday duties table",
+                    "object_name": "SundayDutyMatrix",
+                    "perms": {"view": True, "add": False, "change": False, "delete": False},
+                    "admin_url": reverse("admin:sunday_duty_matrix"),
+                    "add_url": None,
+                    "view_only": True,
+                }
+            )
         if not group_models:
             continue
         group_models.sort(key=lambda model: model["name"])
@@ -280,4 +372,16 @@ def grouped_admin_app_list(self, request, app_label=None):
     return grouped_apps
 
 
+def custom_admin_get_urls(self):
+    return [
+        path(
+            "sunday-duty-matrix/",
+            self.admin_view(MethodType(sunday_duty_matrix_view, self)),
+            name="sunday_duty_matrix",
+        ),
+    ] + original_admin_get_urls()
+
+
+original_admin_get_urls = admin.site.get_urls
+admin.site.get_urls = MethodType(custom_admin_get_urls, admin.site)
 admin.site.get_app_list = MethodType(grouped_admin_app_list, admin.site)

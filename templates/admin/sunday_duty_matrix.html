@@ -1,0 +1,40 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo; Sunday duties table
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    <div class="module sunday-duty-matrix">
+      {% if dates %}
+        <div class="sunday-duty-matrix-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Responsibility</th>
+                {% for sunday in dates %}
+                  <th scope="col">{{ sunday|date:"D j M" }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <th scope="row">{{ row.label }}</th>
+                  {% for cell in row.cells %}
+                    <td>{% if cell %}{{ cell }}{% endif %}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="matrix-empty">No Sunday duties have been rostered yet.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

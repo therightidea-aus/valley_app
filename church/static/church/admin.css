@@ -150,6 +150,34 @@ tr:nth-child(even) {
   padding: 16px 20px;
 }
 
+.sunday-duty-matrix-scroll {
+  overflow-x: auto;
+}
+
+.sunday-duty-matrix table {
+  min-width: 860px;
+}
+
+.sunday-duty-matrix th:first-child {
+  min-width: 180px;
+}
+
+.sunday-duty-matrix td {
+  min-width: 150px;
+  color: #16191b;
+  font-weight: 700;
+}
+
+.sunday-duty-matrix td:empty {
+  background: #f6f7f7;
+}
+
+.matrix-empty {
+  margin: 0;
+  padding: 20px;
+  color: #5b656a;
+}
+
 .object-tools {
   display: flex;
   justify-content: flex-end;
