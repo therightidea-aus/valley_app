@@ -899,6 +899,10 @@ class SundayDutyAdminTests(TestCase):
         self.assertContains(response, "Auth and Users")
         self.assertNotContains(response, "Ministries")
         self.assertNotContains(response, "Assignments")
+        html = response.content.decode()
+        self.assertLess(html.index("Worship Band roster"), html.index("Sunday duties table"))
+        self.assertLess(html.index("Catering roster"), html.index("Sunday duties table"))
+        self.assertLess(html.index("Kids Ministry roster"), html.index("Sunday duties table"))
 
     def test_sunday_duty_matrix_shows_roster_table(self):
         plan = SundayPlan.objects.create(date=date(2026, 6, 21))

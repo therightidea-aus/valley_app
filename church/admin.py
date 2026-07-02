@@ -344,7 +344,7 @@ def grouped_admin_app_list(self, request, app_label=None):
             )
         if not group_models:
             continue
-        group_models.sort(key=lambda model: model["name"])
+        group_models.sort(key=lambda model: (model["object_name"] == "SundayDutyMatrix", model["name"]))
         grouped_apps.append(
             {
                 "name": label,
