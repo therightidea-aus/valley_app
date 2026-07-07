@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import SundayDuty, SundayPlan
+from .models import RosterReminderCopy, SundayDuty, SundayPlan
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +74,18 @@ def build_sunday_roster_context(sunday):
             volunteer_ids.update(person.pk for person in people)
 
     User = get_user_model()
+    copy_recipient_ids = set(
+        RosterReminderCopy.objects.filter(
+            volunteer_id__in=volunteer_ids,
+            active=True,
+            recipient__is_active=True,
+        )
+        .exclude(recipient__email="")
+        .filter(Q(recipient__notification_preference__friday_reminder_enabled=True) | Q(recipient__notification_preference__isnull=True))
+        .values_list("recipient_id", flat=True)
+    )
     recipients = (
-        User.objects.filter(pk__in=volunteer_ids, is_active=True)
+        User.objects.filter(pk__in=volunteer_ids | copy_recipient_ids, is_active=True)
         .exclude(email="")
         .filter(Q(notification_preference__friday_reminder_enabled=True) | Q(notification_preference__isnull=True))
         .distinct()

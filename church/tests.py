@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from .calendar_sync import parse_ical_events
 from .email import send_announcement_email, send_sunday_roster_reminders
-from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, SundayDuty, SundayPlan
+from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode
 
 
@@ -457,6 +457,36 @@ class SundayReminderEmailTests(TestCase):
         self.assertIn("Please arrive by 9:30am.", mail.outbox[0].body)
         self.assertIn("Bring your lanyard.", mail.outbox[0].alternatives[0][0])
 
+    def test_roster_reminder_copy_recipient_gets_email(self):
+        User = get_user_model()
+        jane = User.objects.create_user(
+            username="jane@example.com",
+            email="jane@example.com",
+            first_name="Jane",
+        )
+        RosterReminderCopy.objects.create(volunteer=self.roger, recipient=jane)
+
+        result = send_sunday_roster_reminders(sunday=self.sunday)
+
+        self.assertEqual(result.recipient_count, 3)
+        self.assertEqual(len(mail.outbox), 3)
+        self.assertEqual(sorted(message.to[0] for message in mail.outbox), ["cath@example.com", "jane@example.com", "roger@example.com"])
+
+    def test_inactive_roster_reminder_copy_does_not_send_email(self):
+        User = get_user_model()
+        jane = User.objects.create_user(
+            username="jane@example.com",
+            email="jane@example.com",
+            first_name="Jane",
+        )
+        RosterReminderCopy.objects.create(volunteer=self.roger, recipient=jane, active=False)
+
+        result = send_sunday_roster_reminders(sunday=self.sunday)
+
+        self.assertEqual(result.recipient_count, 2)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(sorted(message.to[0] for message in mail.outbox), ["cath@example.com", "roger@example.com"])
+
     def test_management_command_can_target_sunday(self):
         call_command("send_sunday_reminders", date=self.sunday.isoformat(), dry_run=True)
 
@@ -897,6 +927,7 @@ class SundayDutyAdminTests(TestCase):
         self.assertContains(response, "Sunday duties table")
         self.assertContains(response, "System Settings")
         self.assertContains(response, "Auth and Users")
+        self.assertContains(response, "Roster reminder copies")
         self.assertNotContains(response, "Ministries")
         self.assertNotContains(response, "Assignments")
         html = response.content.decode()

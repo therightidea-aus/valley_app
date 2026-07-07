@@ -13,6 +13,7 @@ from .models import (
     NotificationPreference,
     Profile,
     PushSubscription,
+    RosterReminderCopy,
     SermonSource,
     CateringDuty,
     KidsMinistryDuty,
@@ -157,11 +158,42 @@ class AnnouncementAdmin(admin.ModelAdmin):
             self.message_user(request, f"Announcement emailed to {sent_count} active user(s).")
 
 
+class RosterReminderCopyAdminForm(forms.ModelForm):
+    class Meta:
+        model = RosterReminderCopy
+        fields = ("volunteer", "recipient", "active", "notes")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        volunteer = cleaned_data.get("volunteer")
+        recipient = cleaned_data.get("recipient")
+        if volunteer and recipient and volunteer == recipient:
+            raise forms.ValidationError("The copy recipient must be a different user from the rostered volunteer.")
+        return cleaned_data
+
+
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "role", "phone", "updated_at")
     list_filter = ("role",)
     search_fields = ("user__first_name", "user__last_name", "user__email", "phone")
+
+
+@admin.register(RosterReminderCopy)
+class RosterReminderCopyAdmin(admin.ModelAdmin):
+    form = RosterReminderCopyAdminForm
+    list_display = ("volunteer", "recipient", "active", "updated_at")
+    list_filter = ("active",)
+    search_fields = (
+        "volunteer__first_name",
+        "volunteer__last_name",
+        "volunteer__email",
+        "recipient__first_name",
+        "recipient__last_name",
+        "recipient__email",
+        "notes",
+    )
+    autocomplete_fields = ("volunteer", "recipient")
 
 
 class SundayDutyAdmin(admin.ModelAdmin):
@@ -316,6 +348,7 @@ ADMIN_MENU_GROUPS = [
             "User",
             "Group",
             "Profile",
+            "RosterReminderCopy",
         },
     ),
 ]

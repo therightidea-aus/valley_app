@@ -260,6 +260,34 @@ class NotificationPreference(TimeStampedModel):
         return f"Notification preferences for {self.user}"
 
 
+class RosterReminderCopy(TimeStampedModel):
+    volunteer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="roster_reminder_copies_from",
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="roster_reminder_copies_to",
+    )
+    active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["volunteer__last_name", "volunteer__first_name", "recipient__last_name", "recipient__first_name"]
+        constraints = [
+            models.UniqueConstraint(fields=["volunteer", "recipient"], name="unique_roster_reminder_copy")
+        ]
+        verbose_name = "Roster reminder copy"
+        verbose_name_plural = "Roster reminder copies"
+
+    def __str__(self):
+        volunteer = self.volunteer.get_full_name() or self.volunteer.email or self.volunteer.username
+        recipient = self.recipient.get_full_name() or self.recipient.email or self.recipient.username
+        return f"{recipient} receives reminders for {volunteer}"
+
+
 class PushSubscription(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="push_subscriptions")
     endpoint = models.URLField(unique=True, max_length=1000)
