@@ -12,7 +12,7 @@ from django.utils import timezone
 from .calendar_sync import parse_ical_events
 from .email import send_announcement_email, send_sunday_roster_reminders
 from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
-from .spotify_sync import parse_latest_episode
+from .spotify_sync import parse_latest_episode, parse_latest_rss_episode, sync_spotify_sermon
 
 
 class DashboardTests(TestCase):
@@ -240,6 +240,35 @@ class AnnouncementTests(TestCase):
 
 
 class SpotifySyncTests(TestCase):
+    def test_parse_latest_episode_from_rss_feed(self):
+        raw_feed = """<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">
+  <channel>
+    <title>Valley Community Church</title>
+    <image><url>https://example.com/show.jpg</url></image>
+    <item>
+      <title>Recent Sermon</title>
+      <link>https://open.spotify.com/episode/recent123</link>
+      <guid>recent-guid</guid>
+      <pubDate>Sun, 19 Jul 2026 10:00:00 +1000</pubDate>
+      <description><![CDATA[<p>Episode notes</p>]]></description>
+      <itunes:image href="https://example.com/recent.jpg" />
+    </item>
+    <item>
+      <title>Older Sermon</title>
+      <link>https://open.spotify.com/episode/older123</link>
+      <pubDate>Sun, 12 Jul 2026 10:00:00 +1000</pubDate>
+    </item>
+  </channel>
+</rss>
+"""
+        episode = parse_latest_rss_episode(raw_feed)
+        self.assertEqual(episode.title, "Recent Sermon")
+        self.assertEqual(episode.spotify_url, "https://open.spotify.com/episode/recent123")
+        self.assertEqual(episode.published_on, date(2026, 7, 19))
+        self.assertEqual(episode.artwork_url, "https://example.com/recent.jpg")
+        self.assertEqual(episode.description, "Episode notes")
+
     def test_parse_latest_episode_from_spotify_markup(self):
         raw_page = """
 <div data-testid="episode-0">
@@ -256,6 +285,28 @@ class SpotifySyncTests(TestCase):
         self.assertEqual(episode.title, "Church Explained | Week 6")
         self.assertEqual(episode.spotify_url, "https://open.spotify.com/episode/6nlHrAoIQxjkux3zl3kDYY")
         self.assertEqual(episode.artwork_url, "https://i.scdn.co/image/cover")
+
+    @patch("church.spotify_sync.fetch_latest_podcast_episode")
+    def test_sync_uses_latest_podcast_episode_source(self, fetch_mock):
+        fetch_mock.return_value = parse_latest_rss_episode(
+            """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Fresh Episode</title>
+      <link>https://open.spotify.com/episode/fresh123</link>
+      <pubDate>Sun, 19 Jul 2026 10:00:00 +1000</pubDate>
+    </item>
+  </channel>
+</rss>
+"""
+        )
+
+        sermon = sync_spotify_sermon()
+
+        self.assertEqual(sermon.title, "Fresh Episode")
+        self.assertTrue(sermon.is_latest)
+        self.assertEqual(sermon.spotify_url, "https://open.spotify.com/episode/fresh123")
 
 
 class MyScheduleTests(TestCase):
