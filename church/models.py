@@ -231,6 +231,24 @@ class Announcement(TimeStampedModel):
         return self.title
 
 
+class ContentBlock(TimeStampedModel):
+    class Key(models.TextChoices):
+        BIBLE_STUDY_ZOOM = "bible_study_zoom", "Bible Study Zoom Details"
+
+    key = models.CharField(max_length=64, choices=Key.choices, unique=True)
+    title = models.CharField(max_length=160)
+    body = models.TextField()
+    button_label = models.CharField(max_length=80, blank=True)
+    button_url = models.URLField(blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["title"]
+
+    def __str__(self):
+        return self.title
+
+
 class Notification(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
     title = models.CharField(max_length=160)

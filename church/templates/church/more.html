@@ -19,19 +19,12 @@
 
     <article class="card">
       <div class="section-head">
-        <h2 class="section-title">Bible Study Zoom Details</h2>
+        <h2 class="section-title">{{ zoom_block.title }}</h2>
       </div>
-      <div class="list">
-        <div class="item">
-          <h3>Meeting ID</h3>
-          <p class="muted">891 1754 6603</p>
-        </div>
-        <div class="item">
-          <h3>Passcode</h3>
-          <p class="muted">12345</p>
-        </div>
-      </div>
-      <p style="margin-top:16px"><a class="button" href="https://us06web.zoom.us/j/89117546603?pwd=dmNLYnl4cWtBcmErRXA0VmtubTFUUT09" target="_blank" rel="noopener">Open Zoom</a></p>
+      <p class="muted rich-text">{{ zoom_block.body|urlize|linebreaksbr }}</p>
+      {% if zoom_block.button_url %}
+        <p style="margin-top:16px"><a class="button" href="{{ zoom_block.button_url }}" target="_blank" rel="noopener">{{ zoom_block.button_label|default:"Open link" }}</a></p>
+      {% endif %}
     </article>
 
     <article class="card">

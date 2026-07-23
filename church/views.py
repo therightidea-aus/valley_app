@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
 from .email import send_account_approved_email, send_sunday_roster_reminders
 from .forms import PublicRegistrationForm
-from .models import Announcement, Assignment, CalendarEventCache, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
+from .models import Announcement, Assignment, CalendarEventCache, ContentBlock, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
 
 
@@ -443,7 +443,19 @@ def calendar(request):
 
 @login_required
 def more(request):
-    return render(request, "church/more.html", {"active_nav": "more"})
+    zoom_defaults = {
+        "title": "Bible Study Zoom Details",
+        "body": "Meeting ID: 891 1754 6603\nPasscode: 12345",
+        "button_label": "Open Zoom",
+        "button_url": "https://us06web.zoom.us/j/89117546603?pwd=dmNLYnl4cWtBcmErRXA0VmtubTFUUT09",
+    }
+    zoom_block = (
+        ContentBlock.objects.filter(key=ContentBlock.Key.BIBLE_STUDY_ZOOM, active=True)
+        .values("title", "body", "button_label", "button_url")
+        .first()
+        or zoom_defaults
+    )
+    return render(request, "church/more.html", {"active_nav": "more", "zoom_block": zoom_block})
 
 
 @login_required

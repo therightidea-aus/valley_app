@@ -387,6 +387,17 @@ input {
   line-height: 1.45;
 }
 
+.rich-text {
+  line-height: 1.6;
+}
+
+.rich-text a {
+  color: var(--red);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

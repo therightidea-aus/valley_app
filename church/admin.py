@@ -9,6 +9,7 @@ from .models import (
     Announcement,
     CalendarEventCache,
     CalendarFeed,
+    ContentBlock,
     Notification,
     NotificationPreference,
     Profile,
@@ -288,6 +289,14 @@ class CalendarFeedAdmin(admin.ModelAdmin):
     readonly_fields = ("last_synced_at", "last_sync_error", "created_at", "updated_at")
 
 
+@admin.register(ContentBlock)
+class ContentBlockAdmin(admin.ModelAdmin):
+    list_display = ("title", "key", "active", "updated_at")
+    list_filter = ("active", "key")
+    search_fields = ("title", "body", "button_label", "button_url")
+    fields = ("key", "title", "body", "button_label", "button_url", "active")
+
+
 @admin.register(SermonSource)
 class SermonSourceAdmin(admin.ModelAdmin):
     list_display = ("title", "published_on", "speaker", "is_latest")
@@ -336,6 +345,7 @@ ADMIN_MENU_GROUPS = [
             "Announcement",
             "CalendarFeed",
             "CalendarEventCache",
+            "ContentBlock",
             "SermonSource",
             "Notification",
             "NotificationPreference",

@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from .calendar_sync import parse_ical_events
 from .email import send_announcement_email, send_sunday_roster_reminders
-from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
+from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, ContentBlock, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode, parse_latest_rss_episode, sync_spotify_sermon
 
 
@@ -834,6 +834,31 @@ class RegistrationApprovalTests(TestCase):
         self.assertNotContains(response, "New user requests")
         self.assertNotContains(response, "Admin dashboard")
 
+    def test_more_tab_uses_default_zoom_details_when_no_content_block_exists(self):
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.get(reverse("more"))
+
+        self.assertContains(response, "Bible Study Zoom Details")
+        self.assertContains(response, "891 1754 6603")
+        self.assertContains(response, "Open Zoom")
+
+    def test_more_tab_uses_admin_managed_zoom_details(self):
+        ContentBlock.objects.create(
+            key=ContentBlock.Key.BIBLE_STUDY_ZOOM,
+            title="Updated Zoom Details",
+            body="Join via https://example.com/zoom\nMeeting ID: 123",
+            button_label="Join Bible Study",
+            button_url="https://example.com/zoom",
+        )
+
+        self.client.login(username="admin@example.com", password="valley-demo")
+        response = self.client.get(reverse("more"))
+
+        self.assertContains(response, "Updated Zoom Details")
+        self.assertContains(response, '<a href="https://example.com/zoom"')
+        self.assertContains(response, "Meeting ID: 123")
+        self.assertContains(response, "Join Bible Study")
+
 
 class PasswordResetTests(TestCase):
     def test_password_reset_sends_email_for_active_user(self):
@@ -977,6 +1002,7 @@ class SundayDutyAdminTests(TestCase):
         self.assertContains(response, "Rosters")
         self.assertContains(response, "Sunday duties table")
         self.assertContains(response, "System Settings")
+        self.assertContains(response, "Content blocks")
         self.assertContains(response, "Auth and Users")
         self.assertContains(response, "Roster reminder copies")
         self.assertNotContains(response, "Ministries")
