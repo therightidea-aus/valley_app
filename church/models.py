@@ -5,7 +5,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from urllib.parse import quote
-from PIL import Image, ImageOps
 
 
 class TimeStampedModel(models.Model):
@@ -270,8 +269,6 @@ class FeedPost(TimeStampedModel):
 
 
 class FeedImage(TimeStampedModel):
-    MAX_SIZE = 2000
-
     post = models.ForeignKey(FeedPost, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to=feed_image_upload_path)
     original_filename = models.CharField(max_length=255, blank=True)
@@ -290,22 +287,6 @@ class FeedImage(TimeStampedModel):
         if self.image and not self.original_filename:
             self.original_filename = self.image.name.rsplit("/", 1)[-1]
         super().save(*args, **kwargs)
-        self.resize_image()
-
-    def resize_image(self):
-        if not self.image or not hasattr(self.image, "path"):
-            return
-        with Image.open(self.image.path) as uploaded:
-            image = ImageOps.exif_transpose(uploaded)
-            if max(image.size) <= self.MAX_SIZE:
-                return
-            image.thumbnail((self.MAX_SIZE, self.MAX_SIZE), Image.Resampling.LANCZOS)
-            save_kwargs = {}
-            if image.format == "JPEG" or self.image.name.lower().endswith((".jpg", ".jpeg")):
-                save_kwargs = {"quality": 86, "optimize": True}
-                if image.mode not in ("RGB", "L"):
-                    image = image.convert("RGB")
-            image.save(self.image.path, **save_kwargs)
 
     def __str__(self):
         return self.original_filename or self.image.name

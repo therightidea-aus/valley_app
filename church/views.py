@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import FileResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -17,7 +18,7 @@ from django.views.decorators.http import require_POST
 
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
 from .email import send_account_approved_email, send_sunday_roster_reminders
-from .forms import FeedPostForm, PublicRegistrationForm, validate_feed_image_upload
+from .forms import FeedPostForm, PublicRegistrationForm, prepare_feed_image_upload, validate_feed_image_upload
 from .models import Announcement, Assignment, CalendarEventCache, ContentBlock, FeedImage, FeedPost, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
 
@@ -152,8 +153,16 @@ def _can_edit_feed_post(user, post):
 
 def _attach_feed_images(post, uploads):
     for upload in uploads[:MAX_FEED_UPLOADS]:
-        validate_feed_image_upload(upload)
-        FeedImage.objects.create(post=post, image=upload, original_filename=upload.name[:255])
+        processed_upload = prepare_feed_image_upload(upload)
+        FeedImage.objects.create(post=post, image=processed_upload, original_filename=upload.name[:255])
+
+
+def _is_ajax(request):
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+
+def _form_errors(form):
+    return [error for errors in form.errors.values() for error in errors] + list(form.non_field_errors())
 
 
 def _superadmin_users():
@@ -373,12 +382,22 @@ def feed(request):
         except ValidationError as exc:
             form.add_error(None, exc)
         if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            _attach_feed_images(post, uploads)
-            messages.success(request, "Feed post shared.")
-            return redirect("feed")
+            try:
+                with transaction.atomic():
+                    post = form.save(commit=False)
+                    post.author = request.user
+                    post.save()
+                    _attach_feed_images(post, uploads)
+            except ValidationError as exc:
+                form.add_error(None, exc)
+            else:
+                messages.success(request, "Feed post shared.")
+                if _is_ajax(request):
+                    return JsonResponse({"ok": True, "redirect_url": reverse("feed")})
+                return redirect("feed")
+
+        if _is_ajax(request):
+            return JsonResponse({"ok": False, "errors": _form_errors(form)}, status=400)
 
     posts = FeedPost.objects.select_related("author").prefetch_related("images").order_by("-created_at")
     return render(
@@ -410,13 +429,23 @@ def edit_feed_post(request, pk):
         except ValidationError as exc:
             form.add_error(None, exc)
         if form.is_valid():
-            form.save()
-            delete_ids = request.POST.getlist("delete_images")
-            if delete_ids:
-                post.images.filter(pk__in=delete_ids).delete()
-            _attach_feed_images(post, uploads)
-            messages.success(request, "Feed post updated.")
-            return redirect("feed")
+            try:
+                with transaction.atomic():
+                    form.save()
+                    delete_ids = request.POST.getlist("delete_images")
+                    if delete_ids:
+                        post.images.filter(pk__in=delete_ids).delete()
+                    _attach_feed_images(post, uploads)
+            except ValidationError as exc:
+                form.add_error(None, exc)
+            else:
+                messages.success(request, "Feed post updated.")
+                if _is_ajax(request):
+                    return JsonResponse({"ok": True, "redirect_url": reverse("feed")})
+                return redirect("feed")
+
+        if _is_ajax(request):
+            return JsonResponse({"ok": False, "errors": _form_errors(form)}, status=400)
     else:
         form = FeedPostForm(instance=post)
 

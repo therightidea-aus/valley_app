@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.core.files.base import ContentFile
+from io import BytesIO
+from PIL import Image, ImageOps
 
 from .models import FeedPost
 
@@ -10,6 +13,7 @@ ALLOWED_FEED_IMAGE_TYPES = {
     "image/png",
     "image/webp",
 }
+MAX_FEED_IMAGE_SIZE = 2000
 
 
 class FeedPostForm(forms.ModelForm):
@@ -28,8 +32,42 @@ class FeedPostForm(forms.ModelForm):
 
 
 def validate_feed_image_upload(upload):
-    if upload.content_type not in ALLOWED_FEED_IMAGE_TYPES:
+    extension = upload.name.rsplit(".", 1)[-1].lower()
+    if upload.content_type not in ALLOWED_FEED_IMAGE_TYPES or extension not in {"jpg", "jpeg", "png", "webp"}:
         raise forms.ValidationError("Photos must be JPG, PNG, or WebP files.")
+
+
+def prepare_feed_image_upload(upload):
+    validate_feed_image_upload(upload)
+    try:
+        with Image.open(upload) as opened:
+            image = ImageOps.exif_transpose(opened)
+            image.thumbnail((MAX_FEED_IMAGE_SIZE, MAX_FEED_IMAGE_SIZE), Image.Resampling.LANCZOS)
+            extension = upload.name.rsplit(".", 1)[-1].lower()
+            if extension in {"jpg", "jpeg"}:
+                image_format = "JPEG"
+                content_type = "image/jpeg"
+                if image.mode not in ("RGB", "L"):
+                    image = image.convert("RGB")
+                save_kwargs = {"quality": 86}
+            elif extension == "png":
+                image_format = "PNG"
+                content_type = "image/png"
+                save_kwargs = {}
+            else:
+                image_format = "WEBP"
+                content_type = "image/webp"
+                save_kwargs = {"quality": 86}
+            output = BytesIO()
+            image.save(output, format=image_format, **save_kwargs)
+    except OSError:
+        raise forms.ValidationError("One of the selected photos could not be read.")
+
+    output.seek(0)
+    processed = ContentFile(output.read())
+    processed.name = upload.name
+    processed.content_type = content_type
+    return processed
 
 
 class PublicRegistrationForm(UserCreationForm):

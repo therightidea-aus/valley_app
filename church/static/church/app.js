@@ -18,7 +18,67 @@ if ("serviceWorker" in navigator) {
 
 window.addEventListener("DOMContentLoaded", () => {
   setupFeedLightbox();
+  setupFeedComposer();
 });
+
+function setupFeedComposer() {
+  document.querySelectorAll("[data-feed-form]").forEach((form) => {
+    const fileInput = form.querySelector("[data-feed-files]");
+    const status = form.querySelector("[data-feed-status]");
+    const submit = form.querySelector("[data-feed-submit]");
+    const errors = form.querySelector("[data-feed-errors]");
+    const card = form.closest(".feed-composer");
+
+    if (fileInput && status) {
+      fileInput.addEventListener("change", () => {
+        const count = fileInput.files.length;
+        status.textContent = count ? `${count} photo${count === 1 ? "" : "s"} selected` : "No photos selected";
+      });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      if (!window.fetch || !window.FormData) return;
+      event.preventDefault();
+      setFeedFormState(card, submit, status, errors, true, "Uploading photos...");
+
+      try {
+        const response = await fetch(form.action || window.location.href, {
+          method: "POST",
+          body: new FormData(form),
+          credentials: "same-origin",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error((payload.errors || ["Feed post could not be saved."]).join(" "));
+        }
+        setFeedFormState(card, submit, status, errors, true, "Post saved. Refreshing...");
+        window.location.href = payload.redirect_url || window.location.href;
+      } catch (error) {
+        showFeedErrors(errors, error.message || "Feed post could not be saved.");
+        setFeedFormState(card, submit, status, errors, false, "Try again");
+      }
+    });
+  });
+}
+
+function setFeedFormState(card, submit, status, errors, disabled, message) {
+  if (card) card.classList.toggle("is-uploading", disabled);
+  if (submit) submit.disabled = disabled;
+  if (status) status.textContent = message;
+  if (errors && disabled) {
+    errors.hidden = true;
+    errors.textContent = "";
+  }
+}
+
+function showFeedErrors(errors, message) {
+  if (!errors) return;
+  errors.textContent = message;
+  errors.hidden = false;
+}
 
 function setupFeedLightbox() {
   const dialog = document.querySelector("[data-lightbox]");

@@ -583,6 +583,7 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .file-picker {
@@ -610,6 +611,36 @@ input {
   display: grid;
   gap: 12px;
   padding: 14px;
+}
+
+.feed-upload-status {
+  flex: 1;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.feed-form-errors {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(166, 79, 66, 0.1);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.feed-composer.is-uploading {
+  position: relative;
+}
+
+.feed-composer.is-uploading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
 }
 
 .feed-meta {

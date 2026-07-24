@@ -10,9 +10,12 @@
 
 {% block content %}
   <article class="card strong feed-composer">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" data-feed-form>
       {% csrf_token %}
-      {{ form.non_field_errors }}
+      <div class="feed-form-errors" data-feed-errors hidden></div>
+      {% if form.non_field_errors %}
+        <div class="feed-form-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
       <div class="field feed-field">
         {{ form.body }}
         {% for error in form.body.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
@@ -32,11 +35,12 @@
       <div class="feed-composer-actions">
         <label class="file-picker">
           <span>Add photos</span>
-          <input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple>
+          <input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple data-feed-files>
         </label>
+        <span class="feed-upload-status" data-feed-status>No new photos selected</span>
         <div class="button-row">
           <a class="button secondary compact" href="{% url 'feed' %}">Cancel</a>
-          <button class="button compact" type="submit">Save</button>
+          <button class="button compact" type="submit" data-feed-submit>Save</button>
         </div>
       </div>
     </form>

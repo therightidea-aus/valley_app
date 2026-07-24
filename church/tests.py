@@ -522,6 +522,21 @@ class FeedTests(TestCase):
         self.assertContains(response, "Trip photos from the weekend.")
         self.assertContains(response, "data-lightbox-src")
 
+    def test_ajax_feed_post_returns_json_and_creates_image_record(self):
+        self.client.login(username="leader@example.com", password="valley-demo")
+        response = self.client.post(
+            reverse("feed"),
+            {"body": "AJAX post.", "images": self._image_upload()},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["redirect_url"], reverse("feed"))
+        post = FeedPost.objects.get(body="AJAX post.")
+        self.assertEqual(post.images.count(), 1)
+
     def test_author_can_edit_and_delete_post(self):
         post = FeedPost.objects.create(author=self.leader, body="Original")
         self.client.login(username="leader@example.com", password="valley-demo")
