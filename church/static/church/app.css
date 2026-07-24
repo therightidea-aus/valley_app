@@ -546,6 +546,226 @@ input {
   font-weight: 700;
 }
 
+.feed-shell {
+  width: min(760px, 100%);
+  display: grid;
+  gap: 16px;
+  margin: 0 auto;
+}
+
+.feed-list {
+  display: grid;
+  gap: 16px;
+}
+
+.feed-composer {
+  padding: 14px;
+}
+
+.feed-field {
+  margin-bottom: 12px;
+}
+
+.feed-field textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px;
+  background: var(--mist);
+  color: var(--charcoal);
+  font: inherit;
+}
+
+.feed-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.file-picker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  background: var(--charcoal);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.file-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.feed-post {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.feed-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.feed-meta strong {
+  color: var(--charcoal);
+  font-size: 15px;
+}
+
+.feed-body {
+  margin: 0;
+  color: var(--charcoal);
+  line-height: 1.58;
+}
+
+.feed-body a {
+  color: var(--red);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.feed-image-grid,
+.edit-image-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.feed-image-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--charcoal);
+}
+
+.feed-image-grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.feed-image-grid-3 {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.feed-image-grid-3 .feed-image-button:first-child {
+  grid-row: span 2;
+}
+
+.feed-image-button {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: var(--charcoal);
+  cursor: zoom-in;
+}
+
+.feed-image-button img,
+.edit-image-choice img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.feed-image-button img {
+  aspect-ratio: 1 / 1;
+}
+
+.feed-image-grid-1 .feed-image-button img {
+  aspect-ratio: 4 / 3;
+}
+
+.feed-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--red);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.edit-image-grid {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin-bottom: 14px;
+}
+
+.edit-image-choice {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--mist);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.edit-image-choice img {
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+}
+
+.lightbox {
+  width: min(94vw, 1100px);
+  max-height: 92vh;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+}
+
+.lightbox::backdrop {
+  background: rgba(22, 25, 27, 0.86);
+}
+
+.lightbox img {
+  display: block;
+  width: 100%;
+  max-height: 92vh;
+  object-fit: contain;
+  background: var(--charcoal);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--charcoal);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .empty {
   padding: 18px;
   border: 1px dashed rgba(22, 25, 27, 0.22);
@@ -584,7 +804,7 @@ input {
   bottom: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   height: 70px;
   border-top: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.92);
@@ -599,7 +819,7 @@ input {
   padding: 0;
   border-radius: 0;
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .bottom-nav .nav-link.active {

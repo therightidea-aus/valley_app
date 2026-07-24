@@ -2,6 +2,35 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 
+from .models import FeedPost
+
+
+ALLOWED_FEED_IMAGE_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+
+
+class FeedPostForm(forms.ModelForm):
+    class Meta:
+        model = FeedPost
+        fields = ("body",)
+        widgets = {
+            "body": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": "Share an update, a few photos, or a useful link...",
+                }
+            )
+        }
+        labels = {"body": ""}
+
+
+def validate_feed_image_upload(upload):
+    if upload.content_type not in ALLOWED_FEED_IMAGE_TYPES:
+        raise forms.ValidationError("Photos must be JPG, PNG, or WebP files.")
+
 
 class PublicRegistrationForm(UserCreationForm):
     first_name = forms.CharField(max_length=150, label="First name")

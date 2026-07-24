@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load church_extras %}
+
+{% block title %}Feed{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">Feed</p>
+  <h1 class="page-title">Church updates.</h1>
+  <p class="hero-copy">Photos, links, and short updates shared with the Valley church family.</p>
+{% endblock %}
+
+{% block content %}
+  <div class="feed-shell">
+    {% if can_manage_feed %}
+      <article class="card strong feed-composer">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          <div class="field feed-field">
+            {{ form.body }}
+            {% for error in form.body.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+          </div>
+          <div class="feed-composer-actions">
+            <label class="file-picker">
+              <span>Add photos</span>
+              <input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple>
+            </label>
+            <button class="button compact" type="submit">Post</button>
+          </div>
+        </form>
+      </article>
+    {% endif %}
+
+    <div class="feed-list">
+      {% for post in posts %}
+        <article class="card feed-post">
+          <div class="feed-meta">
+            <strong>{{ post.author.get_full_name|default:post.author.email|default:post.author.username }}</strong>
+            <span>{{ post.created_at|date:"j M Y" }} at {{ post.created_at|time:"g:i A" }}</span>
+          </div>
+          <p class="feed-body">{{ post.body|urlize|linebreaksbr }}</p>
+          {% if post.images.all %}
+            <div class="feed-image-grid feed-image-grid-{{ post.images.all|length }}">
+              {% for image in post.images.all %}
+                <button class="feed-image-button" type="button" data-lightbox-src="{{ image.image.url }}" data-lightbox-alt="Feed photo from {{ post.author.get_full_name|default:'Valley' }}">
+                  <img src="{{ image.image.url }}" alt="">
+                </button>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if request.user.is_superuser or post.author_id == request.user.pk or request.user.profile.role == "superadmin" %}
+            <div class="feed-actions">
+              <a class="section-link" href="{% url 'edit_feed_post' post.pk %}">Edit</a>
+              <form method="post" action="{% url 'delete_feed_post' post.pk %}">
+                {% csrf_token %}
+                <button class="link-button" type="submit">Delete</button>
+              </form>
+            </div>
+          {% endif %}
+        </article>
+      {% empty %}
+        <article class="card">
+          <div class="empty">No feed posts yet.</div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+
+  <dialog class="lightbox" data-lightbox>
+    <button class="lightbox-close" type="button" data-lightbox-close aria-label="Close photo">&times;</button>
+    <img data-lightbox-image alt="">
+  </dialog>
+{% endblock %}

@@ -1,17 +1,22 @@
 import json
+import shutil
+import tempfile
 from datetime import date, datetime, time, timedelta
+from io import BytesIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 
 from .calendar_sync import parse_ical_events
 from .email import send_announcement_email, send_sunday_roster_reminders
-from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, ContentBlock, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
+from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, ContentBlock, FeedPost, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode, parse_latest_rss_episode, sync_spotify_sermon
 
 
@@ -443,6 +448,92 @@ class CateringSelfServeTests(TestCase):
         self.assertRedirects(response, reverse("catering"))
         duty = SundayDuty.objects.get(date=self.sunday, duty_type=SundayDuty.DutyType.CATERING)
         self.assertNotIn(self.user, duty.people.all())
+
+
+class FeedTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.media_root = tempfile.mkdtemp()
+        cls.override = override_settings(MEDIA_ROOT=cls.media_root)
+        cls.override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.override.disable()
+        shutil.rmtree(cls.media_root, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        User = get_user_model()
+        self.regular = User.objects.create_user(
+            username="roger@example.com",
+            email="roger@example.com",
+            password="valley-demo",
+            first_name="Roger",
+        )
+        self.leader = User.objects.create_user(
+            username="leader@example.com",
+            email="leader@example.com",
+            password="valley-demo",
+            first_name="Leader",
+        )
+        self.leader.profile.role = Profile.Role.MINISTRY_LEADER
+        self.leader.profile.save()
+
+    def _image_upload(self, name="photo.jpg", size=(2400, 1400), content_type="image/jpeg"):
+        output = BytesIO()
+        Image.new("RGB", size, "#bfd9d6").save(output, format="JPEG")
+        output.seek(0)
+        return SimpleUploadedFile(name, output.read(), content_type=content_type)
+
+    def test_feed_is_visible_from_primary_nav(self):
+        self.client.login(username="roger@example.com", password="valley-demo")
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertContains(response, reverse("feed"))
+        self.assertContains(response, "Feed")
+
+    def test_regular_user_can_view_but_not_post(self):
+        self.client.login(username="roger@example.com", password="valley-demo")
+        response = self.client.get(reverse("feed"))
+
+        self.assertContains(response, "Church updates.")
+        self.assertNotContains(response, "Post")
+
+        response = self.client.post(reverse("feed"), {"body": "Members update"})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(FeedPost.objects.exists())
+
+    def test_ministry_leader_can_post_images_and_large_images_are_resized(self):
+        self.client.login(username="leader@example.com", password="valley-demo")
+        response = self.client.post(
+            reverse("feed"),
+            {"body": "Trip photos from the weekend.", "images": self._image_upload()},
+        )
+
+        self.assertRedirects(response, reverse("feed"))
+        post = FeedPost.objects.get()
+        image = post.images.get()
+        with Image.open(image.image.path) as uploaded:
+            self.assertLessEqual(max(uploaded.size), 2000)
+
+        response = self.client.get(reverse("feed"))
+        self.assertContains(response, "Trip photos from the weekend.")
+        self.assertContains(response, "data-lightbox-src")
+
+    def test_author_can_edit_and_delete_post(self):
+        post = FeedPost.objects.create(author=self.leader, body="Original")
+        self.client.login(username="leader@example.com", password="valley-demo")
+
+        response = self.client.post(reverse("edit_feed_post", args=[post.pk]), {"body": "Updated"})
+        self.assertRedirects(response, reverse("feed"))
+        post.refresh_from_db()
+        self.assertEqual(post.body, "Updated")
+
+        response = self.client.post(reverse("delete_feed_post", args=[post.pk]))
+        self.assertRedirects(response, reverse("feed"))
+        self.assertFalse(FeedPost.objects.exists())
 
 
 class SundayReminderEmailTests(TestCase):

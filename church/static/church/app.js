@@ -16,6 +16,32 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => setupPushControls(null));
 }
 
+window.addEventListener("DOMContentLoaded", () => {
+  setupFeedLightbox();
+});
+
+function setupFeedLightbox() {
+  const dialog = document.querySelector("[data-lightbox]");
+  if (!dialog) return;
+  const image = dialog.querySelector("[data-lightbox-image]");
+  const closeButton = dialog.querySelector("[data-lightbox-close]");
+
+  document.querySelectorAll("[data-lightbox-src]").forEach((button) => {
+    button.addEventListener("click", () => {
+      image.src = button.dataset.lightboxSrc;
+      image.alt = button.dataset.lightboxAlt || "";
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      }
+    });
+  });
+
+  closeButton.addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+}
+
 function setupPushControls(registration) {
   const button = document.querySelector("[data-push-toggle]");
   if (!button) return;

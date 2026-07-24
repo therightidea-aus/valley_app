@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Feed Post{% endblock %}
+
+{% block hero %}
+  <p class="eyebrow">Feed</p>
+  <h1 class="page-title">Edit post.</h1>
+  <p class="hero-copy">Update the text, add photos, or remove images from this feed post.</p>
+{% endblock %}
+
+{% block content %}
+  <article class="card strong feed-composer">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="field feed-field">
+        {{ form.body }}
+        {% for error in form.body.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      {% if post.images.all %}
+        <div class="edit-image-grid">
+          {% for image in post.images.all %}
+            <label class="edit-image-choice">
+              <img src="{{ image.image.url }}" alt="">
+              <span><input type="checkbox" name="delete_images" value="{{ image.pk }}"> Remove</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="feed-composer-actions">
+        <label class="file-picker">
+          <span>Add photos</span>
+          <input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple>
+        </label>
+        <div class="button-row">
+          <a class="button secondary compact" href="{% url 'feed' %}">Cancel</a>
+          <button class="button compact" type="submit">Save</button>
+        </div>
+      </div>
+    </form>
+  </article>
+{% endblock %}

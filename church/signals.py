@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
-from django.db.models.signals import m2m_changed, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.dispatch import receiver
 
-from .models import CateringDuty, KidsMinistryDuty, Notification, NotificationPreference, Profile, SundayDuty, SundayPlan, WorshipBandDuty
+from .models import CateringDuty, FeedImage, KidsMinistryDuty, Notification, NotificationPreference, Profile, SundayDuty, SundayPlan, WorshipBandDuty
 from .push import send_notification_push
 
 
@@ -88,3 +88,9 @@ def notify_people_added_to_sunday_duty(sender, instance, action, pk_set, **kwarg
 def send_push_for_new_notification(sender, instance, created, **kwargs):
     if created:
         send_notification_push(instance)
+
+
+@receiver(post_delete, sender=FeedImage)
+def delete_feed_image_file(sender, instance, **kwargs):
+    if instance.image:
+        instance.image.delete(save=False)

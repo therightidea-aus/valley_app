@@ -10,6 +10,8 @@ from .models import (
     CalendarEventCache,
     CalendarFeed,
     ContentBlock,
+    FeedImage,
+    FeedPost,
     Notification,
     NotificationPreference,
     Profile,
@@ -297,6 +299,25 @@ class ContentBlockAdmin(admin.ModelAdmin):
     fields = ("key", "title", "body", "button_label", "button_url", "active")
 
 
+class FeedImageInline(admin.TabularInline):
+    model = FeedImage
+    extra = 0
+    readonly_fields = ("original_filename", "created_at", "updated_at")
+
+
+@admin.register(FeedPost)
+class FeedPostAdmin(admin.ModelAdmin):
+    list_display = ("author", "short_body", "created_at", "updated_at")
+    list_filter = ("created_at", "updated_at")
+    search_fields = ("body", "author__first_name", "author__last_name", "author__email")
+    autocomplete_fields = ("author",)
+    inlines = (FeedImageInline,)
+
+    @admin.display(description="Post")
+    def short_body(self, obj):
+        return obj.body[:80]
+
+
 @admin.register(SermonSource)
 class SermonSourceAdmin(admin.ModelAdmin):
     list_display = ("title", "published_on", "speaker", "is_latest")
@@ -346,6 +367,7 @@ ADMIN_MENU_GROUPS = [
             "CalendarFeed",
             "CalendarEventCache",
             "ContentBlock",
+            "FeedPost",
             "SermonSource",
             "Notification",
             "NotificationPreference",

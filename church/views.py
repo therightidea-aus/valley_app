@@ -7,7 +7,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, HttpResponseBadRequest, JsonResponse
+from django.core.exceptions import ValidationError
+from django.http import FileResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -16,8 +17,8 @@ from django.views.decorators.http import require_POST
 
 from .calendar_sync import CalendarSyncError, sync_active_calendar_if_due
 from .email import send_account_approved_email, send_sunday_roster_reminders
-from .forms import PublicRegistrationForm
-from .models import Announcement, Assignment, CalendarEventCache, ContentBlock, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
+from .forms import FeedPostForm, PublicRegistrationForm, validate_feed_image_upload
+from .models import Announcement, Assignment, CalendarEventCache, ContentBlock, FeedImage, FeedPost, Notification, NotificationPreference, PushSubscription, SermonSource, SundayDuty, SundayPlan
 from .spotify_sync import SpotifySyncError, sync_spotify_sermon_if_due
 
 
@@ -42,6 +43,7 @@ SUNDAY_PLAN_ROLE_FIELDS = [
     ("hosting", "Hosting", 20),
     ("setup", "Setup", 30),
 ]
+MAX_FEED_UPLOADS = 4
 
 
 def _upcoming_sunday(today):
@@ -137,6 +139,21 @@ def _is_superadmin(user):
 def _can_send_roster_reminders(user):
     role = getattr(getattr(user, "profile", None), "role", "")
     return user.is_authenticated and (user.is_superuser or role in {"superadmin", "ministry_leader"})
+
+
+def _can_manage_feed(user):
+    role = getattr(getattr(user, "profile", None), "role", "")
+    return user.is_authenticated and (user.is_superuser or role in {"superadmin", "ministry_leader"})
+
+
+def _can_edit_feed_post(user, post):
+    return _is_superadmin(user) or post.author_id == user.pk
+
+
+def _attach_feed_images(post, uploads):
+    for upload in uploads[:MAX_FEED_UPLOADS]:
+        validate_feed_image_upload(upload)
+        FeedImage.objects.create(post=post, image=upload, original_filename=upload.name[:255])
 
 
 def _superadmin_users():
@@ -337,6 +354,84 @@ def catering(request):
             "active_nav": "catering",
         },
     )
+
+
+@login_required
+def feed(request):
+    can_manage_feed = _can_manage_feed(request.user)
+    form = FeedPostForm()
+    if request.method == "POST":
+        if not can_manage_feed:
+            return HttpResponseForbidden("You do not have permission to post to the feed.")
+        form = FeedPostForm(request.POST)
+        uploads = request.FILES.getlist("images")
+        if len(uploads) > MAX_FEED_UPLOADS:
+            form.add_error(None, f"Please upload no more than {MAX_FEED_UPLOADS} photos at a time.")
+        try:
+            for upload in uploads:
+                validate_feed_image_upload(upload)
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.save()
+            _attach_feed_images(post, uploads)
+            messages.success(request, "Feed post shared.")
+            return redirect("feed")
+
+    posts = FeedPost.objects.select_related("author").prefetch_related("images").order_by("-created_at")
+    return render(
+        request,
+        "church/feed.html",
+        {
+            "posts": posts,
+            "form": form,
+            "can_manage_feed": can_manage_feed,
+            "active_nav": "feed",
+        },
+    )
+
+
+@login_required
+def edit_feed_post(request, pk):
+    post = get_object_or_404(FeedPost.objects.prefetch_related("images"), pk=pk)
+    if not _can_edit_feed_post(request.user, post):
+        return HttpResponseForbidden("You do not have permission to edit this post.")
+
+    if request.method == "POST":
+        form = FeedPostForm(request.POST, instance=post)
+        uploads = request.FILES.getlist("images")
+        if len(uploads) > MAX_FEED_UPLOADS:
+            form.add_error(None, f"Please upload no more than {MAX_FEED_UPLOADS} photos at a time.")
+        try:
+            for upload in uploads:
+                validate_feed_image_upload(upload)
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        if form.is_valid():
+            form.save()
+            delete_ids = request.POST.getlist("delete_images")
+            if delete_ids:
+                post.images.filter(pk__in=delete_ids).delete()
+            _attach_feed_images(post, uploads)
+            messages.success(request, "Feed post updated.")
+            return redirect("feed")
+    else:
+        form = FeedPostForm(instance=post)
+
+    return render(request, "church/feed_form.html", {"post": post, "form": form, "active_nav": "feed"})
+
+
+@login_required
+@require_POST
+def delete_feed_post(request, pk):
+    post = get_object_or_404(FeedPost, pk=pk)
+    if not _can_edit_feed_post(request.user, post):
+        return HttpResponseForbidden("You do not have permission to delete this post.")
+    post.delete()
+    messages.success(request, "Feed post deleted.")
+    return redirect("feed")
 
 
 @login_required
