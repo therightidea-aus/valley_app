@@ -835,7 +835,7 @@ input {
   bottom: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   height: 70px;
   border-top: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.92);
@@ -850,7 +850,7 @@ input {
   padding: 0;
   border-radius: 0;
   color: var(--ink-soft);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .bottom-nav .nav-link.active {

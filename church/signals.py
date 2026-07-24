@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
-from django.db.models.signals import m2m_changed, post_delete, post_save
+from django.db.models.signals import m2m_changed, post_save, pre_delete
 from django.dispatch import receiver
 
-from .models import CateringDuty, FeedImage, KidsMinistryDuty, Notification, NotificationPreference, Profile, SundayDuty, SundayPlan, WorshipBandDuty
+from .models import CateringDuty, FeedImage, FeedPost, KidsMinistryDuty, Notification, NotificationPreference, Profile, SundayDuty, SundayPlan, WorshipBandDuty
 from .push import send_notification_push
 
 
@@ -90,7 +90,17 @@ def send_push_for_new_notification(sender, instance, created, **kwargs):
         send_notification_push(instance)
 
 
-@receiver(post_delete, sender=FeedImage)
+def _delete_stored_feed_image(feed_image):
+    if feed_image.image:
+        feed_image.image.storage.delete(feed_image.image.name)
+
+
+@receiver(pre_delete, sender=FeedPost)
+def delete_feed_post_image_files(sender, instance, **kwargs):
+    for image in instance.images.all():
+        _delete_stored_feed_image(image)
+
+
+@receiver(pre_delete, sender=FeedImage)
 def delete_feed_image_file(sender, instance, **kwargs):
-    if instance.image:
-        instance.image.delete(save=False)
+    _delete_stored_feed_image(instance)

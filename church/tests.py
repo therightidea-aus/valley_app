@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import tempfile
 from datetime import date, datetime, time, timedelta
@@ -16,7 +17,7 @@ from PIL import Image
 
 from .calendar_sync import parse_ical_events
 from .email import send_announcement_email, send_sunday_roster_reminders
-from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, ContentBlock, FeedPost, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
+from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, ContentBlock, FeedImage, FeedPost, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode, parse_latest_rss_episode, sync_spotify_sermon
 
 
@@ -493,6 +494,7 @@ class FeedTests(TestCase):
 
         self.assertContains(response, reverse("feed"))
         self.assertContains(response, "Feed")
+        self.assertNotContains(response, "<span>Calendar</span>")
 
     def test_regular_user_can_view_but_not_post(self):
         self.client.login(username="roger@example.com", password="valley-demo")
@@ -549,6 +551,35 @@ class FeedTests(TestCase):
         response = self.client.post(reverse("delete_feed_post", args=[post.pk]))
         self.assertRedirects(response, reverse("feed"))
         self.assertFalse(FeedPost.objects.exists())
+
+    def test_deleting_post_removes_image_file_from_storage(self):
+        self.client.login(username="leader@example.com", password="valley-demo")
+        self.client.post(reverse("feed"), {"body": "Delete me.", "images": self._image_upload()})
+        post = FeedPost.objects.get(body="Delete me.")
+        image_path = post.images.get().image.path
+        self.assertTrue(os.path.exists(image_path))
+
+        response = self.client.post(reverse("delete_feed_post", args=[post.pk]))
+
+        self.assertRedirects(response, reverse("feed"))
+        self.assertFalse(os.path.exists(image_path))
+
+    def test_deleting_single_image_removes_file_from_storage(self):
+        self.client.login(username="leader@example.com", password="valley-demo")
+        self.client.post(reverse("feed"), {"body": "Edit me.", "images": self._image_upload()})
+        post = FeedPost.objects.get(body="Edit me.")
+        image = post.images.get()
+        image_path = image.image.path
+        self.assertTrue(os.path.exists(image_path))
+
+        response = self.client.post(
+            reverse("edit_feed_post", args=[post.pk]),
+            {"body": "Edit me.", "delete_images": [str(image.pk)]},
+        )
+
+        self.assertRedirects(response, reverse("feed"))
+        self.assertFalse(FeedImage.objects.filter(pk=image.pk).exists())
+        self.assertFalse(os.path.exists(image_path))
 
 
 class SundayReminderEmailTests(TestCase):

@@ -10,8 +10,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'church/img/valley-icon-32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'church/img/valley-icon-16.png' %}">
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'church/img/valley-icon-180.png' %}">
-  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=24">
-  <script defer src="{% static 'church/app.js' %}?v=24"></script>
+  <link rel="stylesheet" href="{% static 'church/app.css' %}?v=25">
+  <script defer src="{% static 'church/app.js' %}?v=25"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -59,7 +59,6 @@
     <a class="{% nav_class 'feed' %}" href="{% url 'feed' %}">{% include "church/icons/feed.html" %}<span>Feed</span></a>
     <a class="{% nav_class 'catering' %}" href="{% url 'catering' %}">{% include "church/icons/calendar_check.html" %}<span>Catering</span></a>
     <a class="{% nav_class 'rosters' %}" href="{% url 'rosters' %}">{% include "church/icons/users.html" %}<span>Rosters</span></a>
-    <a class="{% nav_class 'calendar' %}" href="{% url 'calendar' %}">{% include "church/icons/calendar.html" %}<span>Calendar</span></a>
     <a class="{% nav_class 'more' %}" href="{% url 'more' %}">{% include "church/icons/menu.html" %}<span>More</span></a>
   </nav>
 </body>
