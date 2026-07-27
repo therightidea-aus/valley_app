@@ -7,6 +7,7 @@ from io import BytesIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
@@ -19,6 +20,13 @@ from .calendar_sync import parse_ical_events
 from .email import send_announcement_email, send_sunday_roster_reminders
 from .models import Announcement, Assignment, CalendarEventCache, CalendarFeed, ContentBlock, FeedImage, FeedPost, Ministry, Notification, Profile, PushSubscription, Roster, RosterReminderCopy, SundayDuty, SundayPlan
 from .spotify_sync import parse_latest_episode, parse_latest_rss_episode, sync_spotify_sermon
+
+
+class SessionSettingsTests(TestCase):
+    def test_mobile_login_sessions_are_long_lived(self):
+        self.assertEqual(settings.SESSION_COOKIE_AGE, 60 * 60 * 24 * 90)
+        self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+        self.assertFalse(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
 
 
 class DashboardTests(TestCase):
